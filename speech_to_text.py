@@ -4,11 +4,6 @@ import os
 import warnings
 from typing import Optional
 
-# Suppress ALSA warnings
-os.environ['ALSA_PCM_CARD'] = 'default'
-os.environ['ALSA_PCM_DEVICE'] = '0'
-warnings.filterwarnings("ignore", category=UserWarning)
-
 class SpeechToText:
     def __init__(self):
         self.recognizer = sr.Recognizer()
@@ -56,53 +51,44 @@ class SpeechToText:
             except Exception as e:
                 print(f"❌ Could not initialize any microphone: {e}")
 
-    def listen_continuously(self, debug: bool = False) -> Optional[str]:
+    def listen_continuously(self) -> Optional[str]:
         """
         Continuously listen for speech and convert to text
-
-        Args:
-            debug: Print debug information
 
         Returns:
             Recognized text or None if no speech detected/understood
         """
         if not self.microphone:
-            if debug:
-                print("❌ No microphone available")
+            print("❌ No microphone available")
             return None
 
         try:
-            if debug:
-                print("🎤 Waiting for speech...")
+            print("🎤 Waiting for speech...")
 
             with self.microphone as source:
-                # Reduce timeout and be more aggressive about detecting speech
-                audio = self.recognizer.listen(source, timeout=1, phrase_time_limit=10)
+                # Increased timeout for better user experience
+                audio = self.recognizer.listen(source, timeout=3, phrase_time_limit=15)
 
-            if debug:
-                print("🔄 Processing audio...")
+            print("🔄 Processing audio...")
 
             text = self.recognizer.recognize_google(audio)
 
-            if debug:
-                print(f"✅ Recognized: '{text}'")
+            print(f"✅ Recognized: '{text}'")
 
             return text
 
         except sr.WaitTimeoutError:
-            if debug:
-                print("⏰ No speech detected - continuing to listen...")
+            print("⏰ No speech detected - continuing to listen...")
             return None
         except sr.UnknownValueError:
-            if debug:
-                print("❓ Could not understand audio - continuing...")
-            return None  # Could not understand audio - keep listening
+            print("❓ Could not understand audio - try speaking more clearly")
+            return None
         except sr.RequestError as e:
-            print(f"❌ Error with speech recognition service: {e}")
+            print(f"❌ Speech recognition service error: {e}")
+            print("💡 Check your internet connection")
             return None
         except Exception as e:
-            if debug:
-                print(f"❌ Unexpected error in speech recognition: {e}")
+            print(f"❌ Unexpected error in speech recognition: {e}")
             return None
 
     def is_microphone_available(self) -> bool:

@@ -48,9 +48,8 @@ class AIPairProgrammingTutor:
             if not self.stt:
                 time.sleep(1)
                 continue
-
             try:
-                user_speech = self.stt.listen_continuously(debug=self.debug)
+                user_speech = self.stt.listen_continuously()
 
                 if user_speech and user_speech.strip():
                     self.ui.show_user_input(user_speech)
@@ -155,9 +154,8 @@ class AIPairProgrammingTutor:
         )
 
         # Start continuous voice listening
-        self.start_voice_listener()
-
         self.running = True
+        self.start_voice_listener()
 
         try:
             while self.running:

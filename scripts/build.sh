@@ -20,12 +20,12 @@ if [[ "$VIRTUAL_ENV" == "" ]]; then
 fi
 
 # Install PyInstaller if not already installed
-if ! python -c "import PyInstaller" 2>/dev/null; then
+if ! venv/bin/python -c "import PyInstaller" 2>/dev/null; then
     echo "📦 Installing PyInstaller..."
-    pip install pyinstaller
+    venv/bin/pip install pyinstaller
 fi
 
-# Run the Python build script
-python scripts/build.py
+# Run the Python build script with virtual environment python
+venv/bin/python scripts/build.py
 
 echo "✅ Build complete! Check the dist/ directory."

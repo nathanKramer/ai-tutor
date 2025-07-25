@@ -22,6 +22,7 @@ hiddenimports = [
     'prompt_toolkit.application',
     'prompt_toolkit.shortcuts',
     'dotenv',
+    'python-dotenv',
     'json',
     'pathlib',
     'threading',

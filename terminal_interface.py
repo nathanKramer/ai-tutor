@@ -5,8 +5,11 @@ from rich.table import Table
 from rich.live import Live
 from rich.layout import Layout
 from rich.align import Align
+from rich.syntax import Syntax
+from rich.markdown import Markdown
 import time
 import sys
+import re
 from typing import Optional
 from prompt_toolkit import prompt
 from prompt_toolkit.key_binding import KeyBindings
@@ -44,15 +47,106 @@ Ready to start coding together! 🚀
         """Show that speech is being processed"""
         self.console.print("🔄 [yellow]Processing your request...[/yellow]")
         
+    def _parse_and_render_content(self, text: str):
+        """Parse text for code blocks and render with syntax highlighting"""
+        # Pattern to match code blocks with optional language specifier
+        code_block_pattern = r'```(\w+)?\n(.*?)\n```'
+        
+        # Find all code blocks
+        matches = list(re.finditer(code_block_pattern, text, re.DOTALL))
+        
+        if not matches:
+            # No code blocks found, return as regular text
+            return text
+        
+        # Process text with code blocks
+        result_parts = []
+        last_end = 0
+        
+        for match in matches:
+            # Add text before code block
+            if match.start() > last_end:
+                before_text = text[last_end:match.start()].rstrip()
+                if before_text:
+                    result_parts.append(before_text)
+            
+            # Extract language and code
+            language = match.group(1) if match.group(1) else 'text'
+            code = match.group(2)
+            
+            # Create syntax highlighted code block
+            try:
+                syntax = Syntax(
+                    code, 
+                    lexer=language, 
+                    theme="monokai",
+                    line_numbers=True,
+                    padding=1
+                )
+                result_parts.append(syntax)
+            except Exception:
+                # Fallback to plain text if syntax highlighting fails
+                result_parts.append(f"```{language}\n{code}\n```")
+            
+            last_end = match.end()
+        
+        # Add remaining text after last code block
+        if last_end < len(text):
+            remaining_text = text[last_end:].lstrip()
+            if remaining_text:
+                result_parts.append(remaining_text)
+        
+        return result_parts
+
     def show_ai_response(self, text: str):
-        """Display AI response in a formatted way"""
-        response_panel = Panel(
-            text,
-            title="[bold cyan]🤖 AI Tutor[/bold cyan]",
-            border_style="cyan",
-            padding=(1, 2)
-        )
-        self.console.print(response_panel)
+        """Display AI response in a formatted way with syntax highlighting"""
+        content = self._parse_and_render_content(text)
+        
+        if isinstance(content, list):
+            # Multiple parts (text + code blocks) - show title panel first
+            title_panel = Panel(
+                "",
+                title="[bold cyan]🤖 AI Tutor[/bold cyan]",
+                border_style="cyan",
+                padding=(0, 0),
+                height=1
+            )
+            self.console.print(title_panel)
+            
+            for i, part in enumerate(content):
+                if isinstance(part, Syntax):
+                    # Add some spacing before code blocks
+                    if i > 0:
+                        self.console.print()
+                    self.console.print(part)
+                else:
+                    # Regular text - add padding to match panel style
+                    if part.strip():
+                        text_content = Text(part.strip())
+                        text_panel = Panel(
+                            text_content,
+                            border_style="cyan",
+                            padding=(0, 2)
+                        )
+                        self.console.print(text_panel)
+            
+            # Add bottom border to complete the look
+            bottom_panel = Panel(
+                "",
+                border_style="cyan", 
+                padding=(0, 0),
+                height=1
+            )
+            self.console.print(bottom_panel)
+        else:
+            # Single part (no code blocks)
+            response_panel = Panel(
+                content,
+                title="[bold cyan]🤖 AI Tutor[/bold cyan]",
+                border_style="cyan",
+                padding=(1, 2)
+            )
+            self.console.print(response_panel)
     
     def show_user_input(self, text: str):
         """Display what user said"""

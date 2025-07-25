@@ -33,7 +33,8 @@ def check_requirements():
     print("📋 Checking requirements...")
     
     # Check if we're in a virtual environment
-    if not hasattr(sys, 'real_prefix') and not (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+    in_venv = hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
+    if not in_venv:
         print("⚠️  Warning: Not running in a virtual environment")
         print("   It's recommended to build in a virtual environment")
         response = input("Continue anyway? (y/N): ")
@@ -77,8 +78,10 @@ def build_executable():
     """Build the executable using PyInstaller"""
     print("🔨 Building executable...")
     
-    # Use the spec file for better control
-    cmd = "pyinstaller scripts/ai_tutor.spec --clean --noconfirm"
+    # Use the spec file for better control - use virtual environment python
+    import sys
+    python_path = sys.executable
+    cmd = f"{python_path} -m PyInstaller scripts/ai_tutor.spec --clean --noconfirm"
     
     if not run_command(cmd):
         print("❌ Build failed!")

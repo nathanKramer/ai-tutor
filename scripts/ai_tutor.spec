@@ -67,7 +67,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='ai-tutor',
+    name='ai',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

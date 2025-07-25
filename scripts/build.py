@@ -101,7 +101,7 @@ def create_distribution():
         return False
     
     # Find the executable
-    exe_files = list(dist_dir.glob("ai-tutor*"))
+    exe_files = list(dist_dir.glob("ai*"))
     if not exe_files:
         print("❌ No executable found in dist directory")
         return False
@@ -125,8 +125,8 @@ def create_distribution():
 
 2. **Run the application**:
    ```bash
-   ./ai-tutor          # Linux/macOS
-   ai-tutor.exe        # Windows
+   ./ai                # Linux/macOS
+   ai.exe              # Windows
    ```
 
 ## Usage
@@ -151,7 +151,7 @@ def create_distribution():
 ## Troubleshooting
 
 - If the application doesn't start, check that your API keys are set correctly
-- Use `--debug` flag for detailed logging: `./ai-tutor --debug`
+- Use `--debug` flag for detailed logging: `./ai --debug`
 - Check the logs in the `logs/` directory (when debug mode is enabled)
 
 For more information, see the project documentation.
@@ -196,7 +196,7 @@ def main():
     print(f"📁 Executable location: dist/")
     
     # Show final instructions
-    exe_name = "ai-tutor.exe" if os.name == 'nt' else "ai-tutor"
+    exe_name = "ai.exe" if os.name == 'nt' else "ai"
     print(f"\n📋 To run:")
     print(f"   cd dist/")
     print(f"   ./{exe_name}")

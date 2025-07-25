@@ -136,7 +136,7 @@ python scripts/build.py
 - `scripts/ai_tutor.spec` - PyInstaller configuration
 
 **Distribution Files:**
-- `ai-tutor`: Standalone executable (~50MB)
+- `ai`: Standalone executable (~50MB)
 - `README.txt`: User documentation 
 - Installation and startup scripts
 - Compressed archive for easy sharing

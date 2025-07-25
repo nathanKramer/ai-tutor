@@ -127,8 +127,8 @@ class OpenAIProvider(AIProvider):
         response = self.client.chat.completions.create(**call_params)
         message = response.choices[0].message
         
-        # Handle tool calls
-        if message.tool_calls:
+        # Handle tool calls in a loop until AI is ready to respond
+        while message.tool_calls:
             # Show tool execution feedback to user
             for tc in message.tool_calls:
                 try:
@@ -144,7 +144,7 @@ class OpenAIProvider(AIProvider):
                 self.tool_registry
             )
             
-            # Add tool call results to conversation and get final response
+            # Add tool call results to conversation
             api_messages.append({
                 "role": "assistant",
                 "content": message.content,
@@ -158,15 +158,19 @@ class OpenAIProvider(AIProvider):
                     "content": result["output"]
                 })
             
-            # Get final response
-            final_response = self.client.chat.completions.create(
+            # Get next response (might have more tool calls)
+            next_response = self.client.chat.completions.create(
                 model=model,
                 messages=api_messages,
+                tools=call_params.get("tools"),
+                tool_choice=call_params.get("tool_choice"),
                 max_tokens=self.config.get("max_tokens", 1000),
                 temperature=self.config.get("temperature", 0.7)
             )
             
-            return final_response.choices[0].message.content.strip()
+            message = next_response.choices[0].message
+        
+        # Return final response when no more tool calls needed
         
         return message.content.strip() if message.content else ""
     
@@ -220,8 +224,10 @@ class ClaudeProvider(AIProvider):
         
         response = self.client.messages.create(**call_params)
         
-        # Handle tool calls
-        if any(block.type == "tool_use" for block in response.content):
+        # Handle tool calls in a loop until AI is ready to respond
+        current_messages = messages
+        
+        while any(block.type == "tool_use" for block in response.content):
             # Process tool calls
             tool_calls = [block for block in response.content if block.type == "tool_use"]
             
@@ -239,8 +245,8 @@ class ClaudeProvider(AIProvider):
                     "content": result
                 })
             
-            # Add tool results to conversation and get final response
-            messages_with_tools = messages + [
+            # Add tool results to conversation
+            current_messages = current_messages + [
                 {
                     "role": "assistant",
                     "content": response.content
@@ -251,16 +257,17 @@ class ClaudeProvider(AIProvider):
                 }
             ]
             
-            # Get final response
-            final_response = self.client.messages.create(
+            # Get next response (might have more tool calls)
+            response = self.client.messages.create(
                 model=model,
                 max_tokens=self.config.get("max_tokens", 1000),
                 temperature=self.config.get("temperature", 0.7),
                 system=system_prompt,
-                messages=messages_with_tools
+                messages=current_messages,
+                tools=call_params.get("tools") if self._supports_tools() else None
             )
-            
-            return final_response.content[0].text.strip()
+        
+        # Return final response when no more tool calls needed
         
         # Extract text from response
         text_content = ""

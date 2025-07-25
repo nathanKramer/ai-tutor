@@ -50,13 +50,18 @@ class ToolRegistry:
                         "properties": {
                             "directory": {
                                 "type": "string",
-                                "description": "Directory to list (relative to current directory, default: current directory)",
+                                "description": "Directory to list (relative to current directory, default: current directory). Use subdirectory names to explore deeper (e.g., 'src', 'tests')",
                                 "default": "."
                             },
                             "pattern": {
                                 "type": "string",
-                                "description": "File pattern to match (e.g., '*.py', '*.js')",
+                                "description": "File pattern to match (e.g., '*.py', '*.js', '*' for all files)",
                                 "default": "*"
+                            },
+                            "show_hidden": {
+                                "type": "boolean",
+                                "description": "Include hidden files/directories (starting with .)",
+                                "default": False
                             }
                         },
                         "required": []
@@ -135,8 +140,12 @@ class ToolRegistry:
         except PermissionError:
             return f"Error: Permission denied reading '{file_path}'"
     
-    def _list_files(self, directory: str = ".", pattern: str = "*") -> str:
+    def _list_files(self, directory: str = ".", pattern: str = "*", show_hidden=False) -> str:
         """List files in directory"""
+        # Convert string boolean to actual boolean
+        if isinstance(show_hidden, str):
+            show_hidden = show_hidden.lower() in ('true', '1', 'yes', 'on')
+        
         if not self._is_safe_path(directory):
             return "Error: Directory path is outside the allowed directory"
         
@@ -149,29 +158,58 @@ class ToolRegistry:
             return f"Error: '{directory}' is not a directory"
         
         try:
-            from glob import glob
-            search_pattern = os.path.join(full_path, pattern)
-            matches = glob(search_pattern)
+            items = []
             
-            files = []
-            dirs = []
-            
-            for match in sorted(matches):
-                rel_path = os.path.relpath(match, self.working_directory)
-                if os.path.isdir(match):
-                    dirs.append(f"📁 {rel_path}/")
+            # Get all items in directory
+            for item in os.listdir(full_path):
+                # Skip hidden files unless requested
+                if item.startswith('.') and not show_hidden:
+                    continue
+                
+                item_path = os.path.join(full_path, item)
+                rel_path = os.path.relpath(item_path, self.working_directory)
+                
+                # Apply pattern matching
+                if pattern != "*":
+                    from fnmatch import fnmatch
+                    if not fnmatch(item, pattern):
+                        continue
+                
+                if os.path.isdir(item_path):
+                    # Count items in subdirectory for context
+                    try:
+                        subdir_count = len([f for f in os.listdir(item_path) 
+                                          if not f.startswith('.') or show_hidden])
+                        items.append(f"📁 {rel_path}/ ({subdir_count} items)")
+                    except PermissionError:
+                        items.append(f"📁 {rel_path}/ (permission denied)")
                 else:
-                    size = os.path.getsize(match)
-                    files.append(f"📄 {rel_path} ({size} bytes)")
+                    size = os.path.getsize(item_path)
+                    # Add file type context
+                    _, ext = os.path.splitext(item)
+                    if ext:
+                        items.append(f"📄 {rel_path} ({size} bytes, {ext[1:]} file)")
+                    else:
+                        items.append(f"📄 {rel_path} ({size} bytes)")
+            
+            # Sort: directories first, then files
+            dirs = [item for item in items if item.startswith("📁")]
+            files = [item for item in items if item.startswith("📄")]
             
             result = f"Contents of {directory}:\n"
+            
             if dirs:
-                result += "Directories:\n" + "\n".join(dirs) + "\n"
+                result += "\nDirectories:\n" + "\n".join(sorted(dirs))
+            
             if files:
-                result += "Files:\n" + "\n".join(files)
+                result += "\n\nFiles:\n" + "\n".join(sorted(files))
             
             if not dirs and not files:
-                result += "No files found matching pattern"
+                result += "No items found" + (f" matching pattern '{pattern}'" if pattern != "*" else "")
+            
+            # Add exploration hint for directories
+            if dirs and directory == ".":
+                result += "\n\n💡 Use list_files with directory parameter to explore subdirectories (e.g., directory='src')"
             
             return result
         

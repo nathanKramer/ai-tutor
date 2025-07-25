@@ -50,7 +50,7 @@ class ToolRegistry:
                         "properties": {
                             "directory": {
                                 "type": "string",
-                                "description": "Directory to list (relative to current directory, default: current directory). Use subdirectory names to explore deeper (e.g., 'src', 'tests')",
+                                "description": "Directory to list (relative to current directory, default: current directory. Always start with the current directory.). Use subdirectory names to explore deeper (e.g., 'src', 'tests')",
                                 "default": "."
                             },
                             "pattern": {
@@ -152,7 +152,7 @@ class ToolRegistry:
         full_path = os.path.join(self.working_directory, directory)
         
         if not os.path.exists(full_path):
-            return f"Error: Directory '{directory}' does not exist"
+            return f"Error: Directory '{directory}' does not exist. Try using list_files in the current directory to see what directories are available."
         
         if not os.path.isdir(full_path):
             return f"Error: '{directory}' is not a directory"

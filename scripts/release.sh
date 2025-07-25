@@ -178,4 +178,5 @@ echo "   tar -xzf ${RELEASE_NAME}.tar.gz"
 echo "   cd ${RELEASE_NAME}"
 echo "   ./install.sh"
 echo "   ./start.sh"
-EOF
+
+

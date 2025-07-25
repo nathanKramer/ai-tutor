@@ -128,6 +128,40 @@ class AITutor(TutorInterface):
         
         return ai_response
     
+    def get_raw_response(self, user_input: str, context: str = "") -> str:
+        """
+        Get AI response using no system prompt (completely raw)
+        
+        Args:
+            user_input: What the user said
+            context: Additional context about current code/situation
+            
+        Returns:
+            AI response with no system prompt constraints
+        """
+        if not self.current_provider:
+            return "No AI provider available. Please check your API keys."
+        
+        # Add context to the message if provided
+        message_content = user_input
+        if context:
+            message_content = f"Context: {context}\n\nUser: {user_input}"
+        
+        # Create a minimal conversation history with just this message
+        # Don't add to the main conversation history to avoid contamination
+        raw_history = [{
+            "role": "user", 
+            "content": message_content
+        }]
+        
+        # Get response from current provider with empty system prompt
+        ai_response = self.current_provider.get_response(raw_history, "")
+        
+        # Don't add to conversation history since this is a raw query
+        # Users can use regular mode for conversation continuity
+        
+        return ai_response
+    
     def clear_conversation(self):
         """Clear conversation history"""
         self.conversation_history = []

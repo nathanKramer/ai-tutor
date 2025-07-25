@@ -2,6 +2,7 @@
 
 import os
 import sys
+import subprocess
 
 
 def get_resource_path(relative_path):
@@ -113,6 +114,56 @@ class AIPairProgrammingTutor:
         # Display the response
         self.ui.show_ai_response(ai_response)
 
+    def process_raw_prompt(self, user_input: str):
+        """Process user input as a completely raw prompt (no system prompt)"""
+        if not self.ai_tutor:
+            self.ui.show_error("AI Tutor not available")
+            return
+
+        self.ui.show_processing_indicator()
+
+        # Get context about current directory/files for better responses
+        context = self._get_current_context()
+
+        # Get AI response using raw prompt (no system prompt)
+        ai_response = self.ai_tutor.get_raw_response(user_input, context)
+
+        # Display the response
+        self.ui.show_ai_response(ai_response)
+
+    def execute_bash_command(self, command: str):
+        """Execute a bash command and display the output"""
+        try:
+            self.ui.show_info(f"Executing: {command}")
+            
+            # Execute the command
+            result = subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=30  # 30 second timeout
+            )
+            
+            # Display output
+            if result.stdout:
+                self.ui.show_success("Command Output:")
+                self.ui.console.print(result.stdout)
+            
+            if result.stderr:
+                self.ui.show_error("Command Error:")
+                self.ui.console.print(result.stderr)
+            
+            if result.returncode != 0:
+                self.ui.show_error(f"Command exited with code: {result.returncode}")
+            else:
+                self.ui.show_success(f"Command completed successfully (exit code: 0)")
+                
+        except subprocess.TimeoutExpired:
+            self.ui.show_error("Command timed out after 30 seconds")
+        except Exception as e:
+            self.ui.show_error(f"Failed to execute command: {e}")
+
     def _get_current_context(self) -> str:
         """Get context about current working directory"""
         try:
@@ -132,6 +183,15 @@ class AIPairProgrammingTutor:
     def handle_text_command(self, user_input: str):
         """Handle text-based commands or direct messages"""
         user_input = user_input.strip()
+        
+        # Check if it's a bash command (starts with !)
+        if user_input.startswith('!'):
+            bash_command = user_input[1:].strip()
+            if bash_command:
+                self.execute_bash_command(bash_command)
+            else:
+                self.ui.show_info("Usage: !<command> - Execute bash command")
+            return
         
         # Check if it's a command (starts with /)
         if user_input.startswith('/'):
@@ -165,6 +225,14 @@ class AIPairProgrammingTutor:
                     self.process_simple_ask(question)
                 else:
                     self.ui.show_info("Usage: /ask <your question>")
+
+            elif command.startswith('prompt '):
+                # Use completely raw prompt (no system prompt)
+                raw_prompt = command[7:].strip()
+                if raw_prompt:
+                    self.process_raw_prompt(raw_prompt)
+                else:
+                    self.ui.show_info("Usage: /prompt <your raw prompt>")
 
             else:
                 self.ui.show_info(f"Unknown command: /{command}. Type '/help' for available commands.")

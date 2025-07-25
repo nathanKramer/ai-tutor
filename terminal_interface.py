@@ -15,11 +15,168 @@ from prompt_toolkit import prompt
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.application import get_app
+from prompt_toolkit.completion import Completer, Completion, PathCompleter
+
+class CommandCompleter(Completer):
+    """Custom completer for AI tutor commands and file paths"""
+    
+    def __init__(self):
+        self.commands = [
+            '/ask',
+            '/prompt',
+            '/provider',
+            '/config', 
+            '/help',
+            '/clear',
+            '/quit',
+            '/exit'
+        ]
+        
+        # Create path completer for files and folders
+        self.path_completer = PathCompleter()
+        
+        # Provider-specific completions
+        self.provider_commands = [
+            '/provider openai',
+            '/provider claude'
+        ]
+    
+    def _extract_path_at_cursor(self, text, cursor_pos):
+        """Extract potential file path at cursor position"""
+        import re
+        
+        # Find word boundaries around the cursor
+        if cursor_pos == 0:
+            return None, 0, 0
+            
+        # Look for path-like patterns: starts with ./ or / or ~ or contains /
+        # Also look for file extensions
+        path_pattern = r'[./~\w\-]*[./][./\w\-]*'
+        
+        # Find all potential paths in the text
+        matches = list(re.finditer(path_pattern, text))
+        
+        for match in matches:
+            start, end = match.span()
+            if start <= cursor_pos <= end:
+                return match.group(), start, end
+        
+        # If no path pattern found, check if we're at the end of a word that could be a filename
+        word_pattern = r'\S*'
+        word_match = re.search(r'\S*$', text[:cursor_pos])
+        if word_match:
+            word = word_match.group()
+            if '.' in word or word.startswith(('.', '/', '~')):
+                start = cursor_pos - len(word)
+                return word, start, cursor_pos
+                
+        return None, 0, 0
+    
+    def get_completions(self, document, complete_event):
+        text = document.text_before_cursor
+        
+        # Handle command completions (starts with / or !)
+        if text.startswith('/'):
+            # If there's a space, handle sub-commands
+            if ' ' in text:
+                if text.startswith('/provider '):
+                    partial = text[10:]  # Remove '/provider '
+                    for provider in ['openai', 'claude']:
+                        if provider.startswith(partial):
+                            yield Completion(provider, start_position=-len(partial))
+                elif text.startswith('/ask '):
+                    # For /ask, provide file path completions after the command
+                    # Extract the part after '/ask '
+                    ask_content = text[5:]  # Remove '/ask '
+                    # Create a sub-document for path completion
+                    from prompt_toolkit.document import Document
+                    path_document = Document(ask_content, len(ask_content))
+                    # Get path completions
+                    for completion in self.path_completer.get_completions(path_document, complete_event):
+                        yield completion
+                elif text.startswith('/prompt '):
+                    # For /prompt, provide file path completions after the command
+                    # Extract the part after '/prompt '
+                    prompt_content = text[8:]  # Remove '/prompt '
+                    # Create a sub-document for path completion
+                    from prompt_toolkit.document import Document
+                    path_document = Document(prompt_content, len(prompt_content))
+                    # Get path completions
+                    for completion in self.path_completer.get_completions(path_document, complete_event):
+                        yield completion
+            else:
+                # Complete main commands
+                for command in self.commands:
+                    if command.startswith(text):
+                        yield Completion(command, start_position=-len(text))
+        
+        elif text.startswith('!'):
+            # For bash commands, provide file path completions after the command
+            if ' ' in text:
+                # Extract the part after the command for path completion
+                parts = text.split(' ', 1)
+                if len(parts) > 1:
+                    path_part = parts[1]
+                    # Create a sub-document for path completion
+                    from prompt_toolkit.document import Document
+                    path_document = Document(path_part, len(path_part))
+                    # Get path completions
+                    for completion in self.path_completer.get_completions(path_document, complete_event):
+                        yield completion
+        
+        else:
+            # For regular text, only provide file completions if we detect a path-like pattern at cursor
+            path, start_pos, end_pos = self._extract_path_at_cursor(text, len(text))
+            if path:
+                # Use custom file completion logic
+                import os
+                import glob
+                
+                try:
+                    # Handle different path patterns
+                    if path.startswith('~/'):
+                        # Expand home directory
+                        expanded_path = os.path.expanduser(path)
+                        search_pattern = expanded_path + '*'
+                    elif path.startswith('./') or path.startswith('../') or path.startswith('/'):
+                        # Relative or absolute paths
+                        search_pattern = path + '*'
+                    else:
+                        # Plain filename - search in current directory
+                        search_pattern = path + '*'
+                    
+                    # Get matching files and directories
+                    matches = glob.glob(search_pattern)
+                    
+                    for match in matches:
+                        # Get just the filename part for display
+                        if path.startswith('~/'):
+                            # For home directory paths, show the ~/... format
+                            completion_text = '~/' + os.path.relpath(match, os.path.expanduser('~'))
+                        elif os.path.dirname(path):
+                            # For paths with directories, preserve the directory part
+                            completion_text = match
+                        else:
+                            # For plain filenames, show just the filename
+                            completion_text = os.path.basename(match)
+                        
+                        # Add trailing slash for directories
+                        if os.path.isdir(match):
+                            completion_text += '/'
+                        
+                        # Calculate the start position to replace the entire path part
+                        start_position = start_pos - len(text)
+                        yield Completion(completion_text, start_position=start_position)
+                        
+                except (OSError, ValueError):
+                    # If there's an error with file system access, don't provide completions
+                    pass
 
 class TerminalInterface:
     def __init__(self):
         self.console = Console()
         self.last_ctrl_c_time = 0
+        self.command_completer = CommandCompleter()
         
     def show_welcome(self):
         """Display welcome message"""
@@ -32,6 +189,8 @@ How to Use:
 • Type messages to the tutor
 • Press Enter for new lines, Alt+Enter to submit
 • Type /help to see all available commands
+• Press Tab for command and file/folder autocomplete
+• Use !<command> for bash commands (e.g., !ls)
 
 Ready to start coding together! 🚀
         """
@@ -182,7 +341,9 @@ Ready to start coding together! 🚀
         
         help_table.add_row("Direct messaging", "Just type your message and press Alt+Enter to submit")
         help_table.add_row("Multi-line input", "Press Enter for new lines, Alt+Enter to submit")
+        help_table.add_row("!<command>", "Execute bash command (e.g., !ls, !git status)")
         help_table.add_row("/ask <question>", "Ask a direct question (uses simple tutor, not Socratic)")
+        help_table.add_row("/prompt <text>", "Send completely raw prompt (no system prompt)")
         help_table.add_row("/provider <name>", "Switch AI provider (openai, claude)")
         help_table.add_row("/config", "Show current configuration")
         help_table.add_row("/help", "Show this help message")
@@ -224,7 +385,8 @@ Ready to start coding together! 🚀
                 prompt_text,
                 multiline=True,
                 wrap_lines=True,
-                key_bindings=bindings
+                key_bindings=bindings,
+                completer=self.command_completer
             )
             
             return result.strip()

@@ -5,15 +5,18 @@ import anthropic
 import json
 from config import Config
 from tools import ToolRegistry, process_tool_calls
+from core.tool_plugin import PluginManager
+from core.interfaces import ProviderInterface
 
 
-class AIProvider(ABC):
+class AIProvider(ProviderInterface):
     """Abstract base class for AI providers"""
     
     def __init__(self, config: Config, ui=None):
         self.config = config
         self.client = None
         self.tool_registry = ToolRegistry()
+        self.plugin_manager = PluginManager()
         self.ui = ui  # Terminal interface for showing tool feedback
         self._initialize_client()
     
@@ -45,6 +48,14 @@ class AIProvider(ABC):
     def is_available(self) -> bool:
         """Check if the provider is available"""
         return self.client is not None
+    
+    def get_name(self) -> str:
+        """Get provider name"""
+        return self._get_provider_name()
+    
+    def supports_tools(self) -> bool:
+        """Check if provider supports tool calls"""
+        return self._supports_tools()
     
     def _show_tool_feedback(self, tool_name: str, arguments: dict):
         """Show user-visible feedback about tool execution"""
@@ -121,7 +132,7 @@ class OpenAIProvider(AIProvider):
         
         # Add tool definitions if supported
         if self._supports_tools():
-            call_params["tools"] = self.tool_registry.get_tool_definitions()
+            call_params["tools"] = self.plugin_manager.get_all_tool_definitions()
             call_params["tool_choice"] = "auto"
         
         response = self.client.chat.completions.create(**call_params)
@@ -137,12 +148,21 @@ class OpenAIProvider(AIProvider):
                 except:
                     pass  # Don't break if feedback fails
             
-            # Process tool calls
-            tool_results = process_tool_calls(
-                [{"id": tc.id, "function": {"name": tc.function.name, "arguments": tc.function.arguments}} 
-                 for tc in message.tool_calls],
-                self.tool_registry
-            )
+            # Process tool calls using plugin manager
+            tool_results = []
+            for tc in message.tool_calls:
+                try:
+                    arguments = json.loads(tc.function.arguments) if isinstance(tc.function.arguments, str) else tc.function.arguments
+                    result = self.plugin_manager.execute_tool(tc.function.name, arguments)
+                    tool_results.append({
+                        "tool_call_id": tc.id,
+                        "output": result
+                    })
+                except Exception as e:
+                    tool_results.append({
+                        "tool_call_id": tc.id,
+                        "output": f"Error executing tool: {str(e)}"
+                    })
             
             # Add tool call results to conversation
             api_messages.append({
@@ -214,7 +234,7 @@ class ClaudeProvider(AIProvider):
         if self._supports_tools():
             # Convert tool definitions to Claude format
             claude_tools = []
-            for tool_def in self.tool_registry.get_tool_definitions():
+            for tool_def in self.plugin_manager.get_all_tool_definitions():
                 claude_tools.append({
                     "name": tool_def["function"]["name"],
                     "description": tool_def["function"]["description"],
@@ -238,7 +258,7 @@ class ClaudeProvider(AIProvider):
             tool_results = []
             
             for tool_call in tool_calls:
-                result = self.tool_registry.execute_tool(tool_call.name, tool_call.input)
+                result = self.plugin_manager.execute_tool(tool_call.name, tool_call.input)
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": tool_call.id,

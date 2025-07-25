@@ -2,6 +2,7 @@ import os
 import json
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
+from core.config_validator import validate_config, ValidationError
 
 load_dotenv()
 
@@ -25,24 +26,37 @@ class Config:
     
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from file or use defaults"""
+        config = self.DEFAULT_CONFIG.copy()
+        
         if os.path.exists(self.config_file):
             try:
                 with open(self.config_file, 'r') as f:
                     file_config = json.load(f)
                 # Merge with defaults
-                config = self.DEFAULT_CONFIG.copy()
                 config.update(file_config)
-                return config
             except Exception as e:
                 print(f"Warning: Could not load config file {self.config_file}: {e}")
         
-        return self.DEFAULT_CONFIG.copy()
+        # Validate configuration
+        try:
+            validate_config(config)
+        except ValidationError as e:
+            print(f"Configuration validation failed: {e}")
+            print("Using default configuration...")
+            config = self.DEFAULT_CONFIG.copy()
+        
+        return config
     
     def save_config(self):
         """Save current configuration to file"""
         try:
+            # Validate configuration before saving
+            validate_config(self.config)
+            
             with open(self.config_file, 'w') as f:
                 json.dump(self.config, f, indent=2)
+        except ValidationError as e:
+            print(f"Cannot save invalid configuration: {e}")
         except Exception as e:
             print(f"Warning: Could not save config file {self.config_file}: {e}")
     

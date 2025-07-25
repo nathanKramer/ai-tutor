@@ -5,27 +5,66 @@ import sys
 from ai_tutor import AITutor
 from terminal_interface import TerminalInterface
 from config import Config
+from core.dependency_container import get_container
+from core.config_manager import JSONConfigManager
+from core.conversation_manager import InMemoryConversationManager
+from core.prompt_manager import PromptManager
+from core.logger import create_logger
+from core.error_handler import ErrorHandler, handle_error, safe_execute
 
 class AIPairProgrammingTutor:
     def __init__(self, debug: bool = False):
-        self.ui = TerminalInterface()
-        self.config = Config()
-        self.ai_tutor = None
-        self.running = False
         self.debug = debug
-
+        self.running = False
+        
+        # Setup dependency injection
+        self._setup_dependencies()
+        
+        # Get dependencies from container
+        container = get_container()
+        self.ui = container.get('ui')
+        self.config = container.get('config')
+        self.ai_tutor = None
+        
         # Initialize components
         self._init_components()
+    
+    def _setup_dependencies(self):
+        """Setup dependency injection container"""
+        container = get_container()
+        
+        # Create logger
+        logger = create_logger("ai_tutor", debug=self.debug, 
+                              log_file="logs/ai_tutor.log" if self.debug else None)
+        
+        # Create error handler with logger
+        error_handler = ErrorHandler(logger)
+        
+        # Register core services
+        container.register_singleton('ui', TerminalInterface())
+        container.register_singleton('config', Config())
+        container.register_singleton('json_config_manager', JSONConfigManager())
+        container.register_singleton('conversation_manager', InMemoryConversationManager())
+        container.register_singleton('prompt_manager', PromptManager())
+        container.register_singleton('logger', logger)
+        container.register_singleton('error_handler', error_handler)
 
     def _init_components(self):
         """Initialize all system components"""
-        try:
+        container = get_container()
+        logger = container.get('logger')
+        
+        def init_ai_tutor():
             self.ai_tutor = AITutor(self.config, self.ui)
             provider = self.config.get_current_provider()
             model = self.config.get_model_for_provider(provider)
+            logger.info(f"AI Tutor initialized (Provider: {provider}, Model: {model})")
             self.ui.show_success(f"AI Tutor initialized (Provider: {provider}, Model: {model})")
-        except Exception as e:
-            self.ui.show_error(f"Failed to initialize AI Tutor: {e}")
+            return True
+        
+        result = safe_execute(init_ai_tutor, context="AI Tutor initialization", default_return=False)
+        if not result:
+            self.ui.show_error("Failed to initialize AI Tutor. Check logs for details.")
 
 
     def process_user_input(self, user_input: str):

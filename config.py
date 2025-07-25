@@ -1,0 +1,83 @@
+import os
+import json
+from typing import Dict, Any, Optional
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class Config:
+    """Configuration management for AI Tutor"""
+    
+    DEFAULT_CONFIG = {
+        "ai_provider": "openai",  # "openai" or "claude"
+        "models": {
+            "openai": "gpt-3.5-turbo",
+            "claude": "claude-3-haiku-20240307"
+        },
+        "max_tokens": 1000,
+        "temperature": 0.7,
+        "conversation_history_limit": 10
+    }
+    
+    def __init__(self, config_file: str = "tutor_config.json"):
+        self.config_file = config_file
+        self.config = self._load_config()
+    
+    def _load_config(self) -> Dict[str, Any]:
+        """Load configuration from file or use defaults"""
+        if os.path.exists(self.config_file):
+            try:
+                with open(self.config_file, 'r') as f:
+                    file_config = json.load(f)
+                # Merge with defaults
+                config = self.DEFAULT_CONFIG.copy()
+                config.update(file_config)
+                return config
+            except Exception as e:
+                print(f"Warning: Could not load config file {self.config_file}: {e}")
+        
+        return self.DEFAULT_CONFIG.copy()
+    
+    def save_config(self):
+        """Save current configuration to file"""
+        try:
+            with open(self.config_file, 'w') as f:
+                json.dump(self.config, f, indent=2)
+        except Exception as e:
+            print(f"Warning: Could not save config file {self.config_file}: {e}")
+    
+    def get(self, key: str, default: Any = None) -> Any:
+        """Get configuration value"""
+        return self.config.get(key, default)
+    
+    def set(self, key: str, value: Any):
+        """Set configuration value"""
+        self.config[key] = value
+    
+    def get_api_key(self, provider: str) -> Optional[str]:
+        """Get API key for specified provider"""
+        if provider == "openai":
+            return os.getenv('OPENAI_API_KEY')
+        elif provider == "claude":
+            return os.getenv('ANTHROPIC_API_KEY')
+        return None
+    
+    def get_current_provider(self) -> str:
+        """Get current AI provider"""
+        return self.get("ai_provider", "openai")
+    
+    def set_provider(self, provider: str):
+        """Set AI provider"""
+        if provider in ["openai", "claude"]:
+            self.set("ai_provider", provider)
+            self.save_config()
+        else:
+            raise ValueError(f"Unsupported provider: {provider}")
+    
+    def get_model_for_provider(self, provider: str = None) -> str:
+        """Get model name for specified provider"""
+        if provider is None:
+            provider = self.get_current_provider()
+        
+        models = self.get("models", {})
+        return models.get(provider, self.DEFAULT_CONFIG["models"][provider])

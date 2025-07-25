@@ -1,0 +1,10 @@
+{
+  "ai_provider": "claude",
+  "models": {
+    "openai": "gpt-3.5-turbo",
+    "claude": "claude-3-7-sonnet-20250219"
+  },
+  "max_tokens": 1000,
+  "temperature": 0.7,
+  "conversation_history_limit": 10
+}

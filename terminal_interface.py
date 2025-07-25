@@ -187,7 +187,7 @@ Welcome to your AI pair programming partner!
 
 How to Use:
 • Type messages to the tutor
-• Press Enter for new lines, Alt+Enter to submit
+• Press Enter to submit, Alt+Enter for new lines
 • Type /help to see all available commands
 • Press Tab for command and file/folder autocomplete
 • Use !<command> for bash commands (e.g., !ls)
@@ -280,20 +280,20 @@ Ready to start coding together! 🚀
                         self.console.print()
                     self.console.print(part)
                 else:
-                    # Regular text - add padding to match panel style
+                    # Regular text - render as markdown
                     if part.strip():
-                        text_content = Text(part.strip())
-                        if text_content:
-                            text_panel = Panel(
-                                text_content,
-                                border_style="cyan",
-                                padding=(0, 2)
-                            )
-                            self.console.print(text_panel)
+                        markdown_content = Markdown(part.strip())
+                        text_panel = Panel(
+                            markdown_content,
+                            border_style="cyan",
+                            padding=(0, 2)
+                        )
+                        self.console.print(text_panel)
         else:
-            # Single part (no code blocks)
+            # Single part (no code blocks) - render as markdown
+            markdown_content = Markdown(content)
             response_panel = Panel(
-                content,
+                markdown_content,
                 title="[bold cyan]🤖 AI Tutor[/bold cyan]",
                 border_style="cyan",
                 padding=(1, 2)
@@ -339,8 +339,8 @@ Ready to start coding together! 🚀
         help_table.add_column("Command", style="cyan", no_wrap=True)
         help_table.add_column("Description", style="white")
         
-        help_table.add_row("Direct messaging", "Just type your message and press Alt+Enter to submit")
-        help_table.add_row("Multi-line input", "Press Enter for new lines, Alt+Enter to submit")
+        help_table.add_row("Direct messaging", "Just type your message and press Enter to submit")
+        help_table.add_row("Multi-line input", "Press Alt+Enter for new lines, Enter to submit")
         help_table.add_row("!<command>", "Execute bash command (e.g., !ls, !git status)")
         help_table.add_row("/ask <question>", "Ask a direct question (uses simple tutor, not Socratic)")
         help_table.add_row("/prompt <text>", "Send completely raw prompt (no system prompt)")
@@ -378,12 +378,20 @@ Ready to start coding together! 🚀
                     self.console.print("⚠️  [yellow]Press Ctrl+C again within 1 second to exit.[/yellow]")
                     self.last_ctrl_c_time = current_time
         
+        @bindings.add('enter')
+        def _(event):
+            """Handle Enter - submit the message"""
+            event.app.exit(result=event.app.current_buffer.text)
+        
+        @bindings.add('escape', 'enter')  # Alt+Enter
+        def _(event):
+            """Handle Alt+Enter - insert new line"""
+            event.app.current_buffer.insert_text('\n')
+        
         try:
-            # Use prompt-toolkit's built-in multiline functionality
-            # By default: Alt Enter submits, Enter adds new lines.
+            # Use custom key bindings: Enter submits, Alt+Enter adds new lines
             result = prompt(
                 prompt_text,
-                multiline=True,
                 wrap_lines=True,
                 key_bindings=bindings,
                 completer=self.command_completer

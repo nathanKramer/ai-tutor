@@ -235,7 +235,7 @@ def main():
 
     if len(sys.argv) > 1 and '--help' in sys.argv:
         print("AI Pair Programming Tutor")
-        print("\nUsage: python main.py [--debug] [--help]")
+        print("\nUsage: ai [--debug] [--help]")
         print("\nOptions:")
         print("  --debug    Enable debug output")
         print("  --help     Show this help message")

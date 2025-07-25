@@ -1,16 +1,13 @@
 import os
-import importlib
-import inspect
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Type
-from abc import ABC, abstractmethod
+from typing import Dict, List, Any, Optional 
 from core.interfaces import ToolInterface, LoggerInterface
 
 
 class ToolPlugin(ToolInterface):
     """Base class for tool plugins"""
     
-    def __init__(self, working_directory: str = None, logger: Optional[LoggerInterface] = None):
+    def __init__(self, working_directory: str | None = None, logger: Optional[LoggerInterface] = None):
         self.working_directory = working_directory or os.getcwd()
         self.logger = logger
     

@@ -59,7 +59,7 @@ class PromptManager:
     def get_default_system_prompt(self) -> str:
         """Get the default combined system prompt"""
         default_prompts = [
-            "socratic_tutor",
+            "simple_tutor",
             "problem_progression", 
             "tool_usage"
         ]

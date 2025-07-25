@@ -22,7 +22,7 @@ from core.config_manager import JSONConfigManager
 from core.conversation_manager import InMemoryConversationManager
 from core.prompt_manager import PromptManager
 from core.logger import create_logger
-from core.error_handler import ErrorHandler, handle_error, safe_execute
+from core.error_handler import ErrorHandler, safe_execute
 
 class AIPairProgrammingTutor:
     def __init__(self, debug: bool = False):
@@ -132,11 +132,6 @@ class AIPairProgrammingTutor:
                     self.ai_tutor.clear_conversation()
                     self.ui.show_success("Conversation history cleared")
 
-            elif command == 'status':
-                self.ui.show_status(
-                    ai_available=self.ai_tutor is not None
-                )
-
             elif command.startswith('provider '):
                 # Switch AI provider
                 provider = command[9:].strip().lower()
@@ -207,11 +202,6 @@ Available Commands:
         """Main application loop"""
         # self.ui.clear_screen()
         self.ui.show_welcome()
-
-        # Check component availability
-        self.ui.show_status(
-            ai_available=self.ai_tutor is not None
-        )
 
         self.running = True
 

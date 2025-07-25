@@ -27,9 +27,8 @@ class TerminalInterface:
 Welcome to your AI pair programming partner!
 
 How to Use:
-• Just type your messages directly - no need for commands!
+• Type messages to the tutor
 • Press Enter for new lines, Alt+Enter to submit
-• Use /command for system commands (e.g., /help, /quit)
 • Type /help to see all available commands
 
 Ready to start coding together! 🚀
@@ -123,21 +122,13 @@ Ready to start coding together! 🚀
                     # Regular text - add padding to match panel style
                     if part.strip():
                         text_content = Text(part.strip())
-                        text_panel = Panel(
-                            text_content,
-                            border_style="cyan",
-                            padding=(0, 2)
-                        )
-                        self.console.print(text_panel)
-            
-            # Add bottom border to complete the look
-            bottom_panel = Panel(
-                "",
-                border_style="cyan", 
-                padding=(0, 0),
-                height=1
-            )
-            self.console.print(bottom_panel)
+                        if text_content:
+                            text_panel = Panel(
+                                text_content,
+                                border_style="cyan",
+                                padding=(0, 2)
+                            )
+                            self.console.print(text_panel)
         else:
             # Single part (no code blocks)
             response_panel = Panel(
@@ -193,32 +184,16 @@ Ready to start coding together! 🚀
         help_table.add_row("/config", "Show current configuration")
         help_table.add_row("/help", "Show this help message")
         help_table.add_row("/clear", "Clear conversation history")
-        help_table.add_row("/status", "Show system status")
         help_table.add_row("/quit or /exit", "End the tutoring session")
         
         self.console.print(help_table)
-    
-    def show_status(self, ai_available: bool):
-        """Show system component status"""
-        status_table = Table(title="System Status")
-        status_table.add_column("Component", style="cyan")
-        status_table.add_column("Status", style="white")
-        
-        ai_status = "✅ Available" if ai_available else "❌ Not Available"
-        
-        status_table.add_row("AI Tutor", ai_status)
-        
-        self.console.print(status_table)
     
     def get_user_input(self, prompt_text: str = "> ") -> str:
         """Get text input from user with multi-line support"""
         
         try:
-            # Show instruction
-            self.console.print("[dim]💡 Tip: Type directly to chat, use /help to view available commands. Press Enter for new lines, Alt+Enter to submit[/dim]")
-            
             # Use prompt-toolkit's built-in multiline functionality
-            # By default: Enter submits, Meta+Enter (Alt+Enter) or Escape+Enter adds newlines
+            # By default: Alt Enter submits, Enter adds new lines.
             result = prompt(
                 prompt_text,
                 multiline=True,

@@ -103,6 +103,46 @@ Settings are automatically saved to `tutor_config.json` and can be manually edit
 
 No testing framework is currently implemented in this codebase.
 
+## Building for Distribution
+
+The application can be built into a standalone executable that doesn't require Python or virtual environment activation:
+
+**Build Commands:**
+```bash
+# Quick build (convenience wrapper)
+./build.sh
+
+# Direct script execution
+scripts/build.sh
+
+# Manual build
+python scripts/build.py
+
+# Create full release package
+./release.sh
+```
+
+**Build Process:**
+- Uses PyInstaller to create standalone executable
+- Includes all dependencies and resource files
+- Creates distribution package with documentation
+- Generates installation and startup scripts
+
+**Build Script Organization:**
+- `scripts/` - Build and release scripts
+- `build.sh` - Convenience wrapper (calls `scripts/build.sh`)
+- `release.sh` - Convenience wrapper (calls `scripts/release.sh`)
+- `scripts/build.py` - Python build script with error handling
+- `scripts/ai_tutor.spec` - PyInstaller configuration
+
+**Distribution Files:**
+- `ai-tutor`: Standalone executable (~50MB)
+- `README.txt`: User documentation 
+- Installation and startup scripts
+- Compressed archive for easy sharing
+
+The built executable works on the target platform without requiring Python installation or dependency management.
+
 ## Supported AI Models
 
 **OpenAI Models:**

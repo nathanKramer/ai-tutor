@@ -1,13 +1,26 @@
 import os
+import sys
 from typing import Dict, List, Optional
 from pathlib import Path
+
+
+def get_resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except AttributeError:
+        # Running in normal Python environment
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
 
 
 class PromptManager:
     """Manages loading and combining system prompts from files"""
     
     def __init__(self, prompts_dir: str = "prompts"):
-        self.prompts_dir = Path(prompts_dir)
+        self.prompts_dir = Path(get_resource_path(prompts_dir))
         self._prompt_cache: Dict[str, str] = {}
     
     def load_prompt(self, prompt_name: str) -> str:

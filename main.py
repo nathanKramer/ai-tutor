@@ -96,6 +96,23 @@ class AIPairProgrammingTutor:
         # Display the response
         self.ui.show_ai_response(ai_response)
 
+    def process_simple_ask(self, user_input: str):
+        """Process user input using simple tutor (non-Socratic) approach"""
+        if not self.ai_tutor:
+            self.ui.show_error("AI Tutor not available")
+            return
+
+        self.ui.show_processing_indicator()
+
+        # Get context about current directory/files for better responses
+        context = self._get_current_context()
+
+        # Get AI response using simple tutor
+        ai_response = self.ai_tutor.get_simple_response(user_input, context)
+
+        # Display the response
+        self.ui.show_ai_response(ai_response)
+
     def _get_current_context(self) -> str:
         """Get context about current working directory"""
         try:
@@ -140,6 +157,14 @@ class AIPairProgrammingTutor:
             elif command == 'config':
                 # Show current configuration
                 self.show_config()
+
+            elif command.startswith('ask '):
+                # Use simple tutor for direct question
+                question = command[4:].strip()
+                if question:
+                    self.process_simple_ask(question)
+                else:
+                    self.ui.show_info("Usage: /ask <your question>")
 
             else:
                 self.ui.show_info(f"Unknown command: /{command}. Type '/help' for available commands.")

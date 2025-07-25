@@ -14,10 +14,12 @@ from typing import Optional
 from prompt_toolkit import prompt
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
+from prompt_toolkit.application import get_app
 
 class TerminalInterface:
     def __init__(self):
         self.console = Console()
+        self.last_ctrl_c_time = 0
         
     def show_welcome(self):
         """Display welcome message"""
@@ -180,6 +182,7 @@ Ready to start coding together! 🚀
         
         help_table.add_row("Direct messaging", "Just type your message and press Alt+Enter to submit")
         help_table.add_row("Multi-line input", "Press Enter for new lines, Alt+Enter to submit")
+        help_table.add_row("/ask <question>", "Ask a direct question (uses simple tutor, not Socratic)")
         help_table.add_row("/provider <name>", "Switch AI provider (openai, claude)")
         help_table.add_row("/config", "Show current configuration")
         help_table.add_row("/help", "Show this help message")
@@ -189,7 +192,30 @@ Ready to start coding together! 🚀
         self.console.print(help_table)
     
     def get_user_input(self, prompt_text: str = "> ") -> str:
-        """Get text input from user with multi-line support"""
+        """Get text input from user with multi-line support and Ctrl+C handling"""
+        
+        # Create custom key bindings
+        bindings = KeyBindings()
+        
+        @bindings.add('c-c')
+        def _(event):
+            """Handle Ctrl+C - clear text or show warning"""
+            current_time = time.time()
+            
+            # If there's text in the buffer, clear it
+            if event.app.current_buffer.text:
+                event.app.current_buffer.reset()
+                self.console.print("🧹 [yellow]Press Ctrl+C again within 1 second to exit.[/yellow]")
+                self.last_ctrl_c_time = current_time
+            else:
+                # No text in buffer, check if we should exit
+                if current_time - self.last_ctrl_c_time <= 1.0:
+                    # Second Ctrl+C within 1 second, exit
+                    event.app.exit(exception=KeyboardInterrupt())
+                else:
+                    # First Ctrl+C with empty buffer, show warning
+                    self.console.print("⚠️  [yellow]Press Ctrl+C again within 1 second to exit.[/yellow]")
+                    self.last_ctrl_c_time = current_time
         
         try:
             # Use prompt-toolkit's built-in multiline functionality
@@ -197,7 +223,8 @@ Ready to start coding together! 🚀
             result = prompt(
                 prompt_text,
                 multiline=True,
-                wrap_lines=True
+                wrap_lines=True,
+                key_bindings=bindings
             )
             
             return result.strip()

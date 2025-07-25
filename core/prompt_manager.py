@@ -59,12 +59,22 @@ class PromptManager:
     def get_default_system_prompt(self) -> str:
         """Get the default combined system prompt"""
         default_prompts = [
-            "simple_tutor",
+            "socratic_tutor",
             "problem_progression", 
             "tool_usage"
         ]
         
         return self.combine_prompts(default_prompts)
+    
+    def get_simple_tutor_prompt(self) -> str:
+        """Get the simple tutor prompt (more direct, less Socratic)"""
+        simple_prompts = [
+            "simple_tutor",
+            "problem_progression",
+            "tool_usage"
+        ]
+        
+        return self.combine_prompts(simple_prompts)
     
     def reload_prompts(self):
         """Clear cache and reload all prompts"""

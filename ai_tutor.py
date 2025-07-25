@@ -85,6 +85,48 @@ class AITutor(TutorInterface):
         
         return ai_response
     
+    def get_simple_response(self, user_input: str, context: str = "") -> str:
+        """
+        Get AI tutor response using simple tutor prompt (non-Socratic)
+        
+        Args:
+            user_input: What the user said
+            context: Additional context about current code/situation
+            
+        Returns:
+            AI tutor's response using simple tutor prompt
+        """
+        if not self.current_provider:
+            return "No AI provider available. Please check your API keys."
+        
+        # Add context to the message if provided
+        message_content = user_input
+        if context:
+            message_content = f"Context: {context}\n\nUser: {user_input}"
+        
+        # Add to conversation history
+        self.conversation_history.append({
+            "role": "user", 
+            "content": message_content
+        })
+        
+        # Prepare recent conversation history
+        history_limit = self.config.get("conversation_history_limit", 10)
+        recent_history = self.conversation_history[-history_limit:]
+        
+        # Get simple tutor prompt
+        simple_prompt = self.prompt_manager.get_simple_tutor_prompt()
+        
+        # Get response from current provider using simple prompt
+        ai_response = self.current_provider.get_response(recent_history, simple_prompt)
+        
+        # Add AI response to history
+        self.conversation_history.append({
+            "role": "assistant",
+            "content": ai_response
+        })
+        
+        return ai_response
     
     def clear_conversation(self):
         """Clear conversation history"""

@@ -16,6 +16,7 @@ from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.application import get_app
 from prompt_toolkit.completion import Completer, Completion, PathCompleter
+from prompt_toolkit.history import InMemoryHistory
 
 class CommandCompleter(Completer):
     """Custom completer for AI tutor commands and file paths"""
@@ -193,6 +194,43 @@ class TerminalInterface:
         self.console = Console()
         self.last_ctrl_c_time = 0
         self.command_completer = CommandCompleter()
+        self.command_history = InMemoryHistory()
+        self._load_history()
+    
+    def _load_history(self):
+        """Load command history from file"""
+        try:
+            from pathlib import Path
+            config_dir = Path.home() / ".config" / "ai-tutor"
+            history_file = config_dir / "command_history.txt"
+            
+            if history_file.exists():
+                with open(history_file, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            self.command_history.append_string(line)
+        except Exception:
+            # Silently fail if history can't be loaded
+            pass
+    
+    def _save_history(self):
+        """Save command history to file"""
+        try:
+            from pathlib import Path
+            config_dir = Path.home() / ".config" / "ai-tutor"
+            config_dir.mkdir(parents=True, exist_ok=True)
+            history_file = config_dir / "command_history.txt"
+            
+            # Get last 1000 commands to avoid file getting too large
+            history_strings = self.command_history.get_strings()[-1000:]
+            
+            with open(history_file, 'w', encoding='utf-8') as f:
+                for command in history_strings:
+                    f.write(command + '\n')
+        except Exception:
+            # Silently fail if history can't be saved
+            pass
         
     def show_welcome(self):
         """Display welcome message"""
@@ -443,7 +481,7 @@ class TerminalInterface:
                 self.console.print(" " * (console_width - len(right_text.plain)), end="")
                 self.console.print(right_text)
         
-        # Create custom key bindings
+        # Create custom key bindings that don't override default navigation
         bindings = KeyBindings()
         
         @bindings.add('c-c')
@@ -477,13 +515,19 @@ class TerminalInterface:
             event.app.current_buffer.insert_text('\n')
         
         try:
-            # Use custom key bindings: Enter submits, Alt+Enter adds new lines
+            # Use prompt with history - Enter submits, Alt+Enter adds new lines, Up/Down for history
             result = prompt(
                 prompt_text,
                 wrap_lines=True,
                 key_bindings=bindings,
-                completer=self.command_completer
+                completer=self.command_completer,
+                history=self.command_history,
             )
+            
+            # Manually add command to history (prompt-toolkit might not be doing this automatically)
+            if result.strip():
+                self.command_history.append_string(result.strip())
+                self._save_history()
             
             return result.strip()
             

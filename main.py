@@ -43,6 +43,9 @@ class AIPairProgrammingTutor:
         
         # Initialize AI tutor
         self._init_ai_tutor()
+        
+        # Load and apply saved role
+        self._load_saved_role()
     
     def _init_ai_tutor(self):
         """Initialize AI tutor component"""
@@ -57,6 +60,16 @@ class AIPairProgrammingTutor:
         result = safe_execute(init_ai_tutor, context="AI Tutor initialization", default_return=False)
         if not result:
             self.ui.show_error("Failed to initialize AI Tutor. Check logs for details.")
+    
+    def _load_saved_role(self):
+        """Load and apply the saved role from config"""
+        try:
+            if self.ai_tutor:
+                saved_role = self.config.get_role()
+                self.ai_tutor.switch_role(saved_role)
+        except Exception as e:
+            # Silently fail to not disrupt startup
+            pass
 
 
     def process_user_input(self, user_input: str):
@@ -290,16 +303,19 @@ class AIPairProgrammingTutor:
             max_tokens = self.config.get("max_tokens")
             temperature = self.config.get("temperature")
             
+            role = self.config.get_role()
             config_info = f"""Current Configuration:
 • Provider: {provider}
 • Model: {model}
+• Role: {role}
 • Max Tokens: {max_tokens}
 • Temperature: {temperature}
 • History Limit: {self.config.get("conversation_history_limit")}
 
 Available Commands:
 • /provider openai - Switch to OpenAI
-• /provider claude - Switch to Claude"""
+• /provider claude - Switch to Claude
+• /role tutor|simple|short - Switch role"""
             
             self.ui.show_info(config_info)
             
@@ -315,12 +331,8 @@ Available Commands:
             
             success = self.ai_tutor.switch_role(role)
             if success:
-                if role == "tutor":
-                    self.ui.show_success("Switched to Socratic tutor mode")
-                elif role == "simple":
-                    self.ui.show_success("Switched to simple tutor mode")
-                elif role == "short":
-                    self.ui.show_success("Switched to short response mode")
+                # Save role to config
+                self.config.set_role(role)
             else:
                 self.ui.show_error(f"Unknown role: '{role}'. Available roles: tutor, simple, short")
                 
@@ -620,8 +632,13 @@ Available Commands:
         try:
             while self.running:
                 try:
-                    # Get user input
-                    user_input = self.ui.get_user_input()
+                    # Get user input with role hint and provider info
+                    current_role = self.config.get_role()
+                    provider = self.config.get_current_provider()
+                    model = self.config.get_model_for_provider(provider)
+                    provider_info = f"{provider} | {model}"
+                    
+                    user_input = self.ui.get_user_input(role_hint=current_role, provider_info=provider_info)
 
                     if user_input.strip():
                         self.handle_text_command(user_input)

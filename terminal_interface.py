@@ -375,8 +375,47 @@ Ready to start coding together! 🚀
         
         self.console.print(help_table)
     
-    def get_user_input(self, prompt_text: str = "> ") -> str:
+    def get_user_input(self, prompt_text: str = "> ", role_hint: str = None, provider_info: str = None) -> str:
         """Get text input from user with multi-line support and Ctrl+C handling"""
+        
+        # Show hints if provided
+        if role_hint or provider_info:
+            from rich.columns import Columns
+            from rich.text import Text
+            
+            left_hint = ""
+            if role_hint:
+                role_colors = {
+                    "tutor": "yellow",
+                    "simple": "blue", 
+                    "short": "green"
+                }
+                color = role_colors.get(role_hint, "white")
+                left_hint = f"[dim {color}]Mode: {role_hint}[/dim {color}] [dim white]| Enter: send[/dim white]"
+            
+            right_hint = ""
+            if provider_info:
+                right_hint = f"[dim cyan]{provider_info}[/dim cyan]"
+            
+            # Create left and right aligned text
+            left_text = Text.from_markup(left_hint) if left_hint else Text("")
+            right_text = Text.from_markup(right_hint) if right_hint else Text("")
+            
+            # Get console width and calculate spacing
+            console_width = self.console.size.width
+            used_width = len(left_text.plain) + len(right_text.plain)
+            spacing = max(1, console_width - used_width)
+            
+            # Print with proper spacing
+            if left_hint and right_hint:
+                self.console.print(left_text, end="")
+                self.console.print(" " * spacing, end="")
+                self.console.print(right_text)
+            elif left_hint:
+                self.console.print(left_text)
+            elif right_hint:
+                self.console.print(" " * (console_width - len(right_text.plain)), end="")
+                self.console.print(right_text)
         
         # Create custom key bindings
         bindings = KeyBindings()

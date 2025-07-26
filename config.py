@@ -18,7 +18,8 @@ class Config:
         },
         "max_tokens": 1000,
         "temperature": 0.7,
-        "conversation_history_limit": 10
+        "conversation_history_limit": 10,
+        "role": "tutor"  # Default role: "tutor", "simple", or "short"
     }
     
     def __init__(self, config_file: str = None):
@@ -102,3 +103,15 @@ class Config:
         
         models = self.get("models", {})
         return models.get(provider, self.DEFAULT_CONFIG["models"][provider])
+    
+    def get_role(self) -> str:
+        """Get current role"""
+        return self.get("role", "tutor")
+    
+    def set_role(self, role: str):
+        """Set role and save to config"""
+        if role in ["tutor", "simple", "short"]:
+            self.set("role", role)
+            self.save_config()
+        else:
+            raise ValueError(f"Unsupported role: {role}")

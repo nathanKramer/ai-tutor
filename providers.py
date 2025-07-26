@@ -18,6 +18,7 @@ class AIProvider(ProviderInterface):
         self.tool_registry = ToolRegistry()
         self.plugin_manager = PluginManager()
         self.ui = ui  # Terminal interface for showing tool feedback
+        self.tool_metadata = []  # Track tool calls for logging
         self._initialize_client()
     
     @abstractmethod
@@ -74,6 +75,51 @@ class AIProvider(ProviderInterface):
             elif tool_name == "get_file_info":
                 file_path = arguments.get("file_path", "unknown")
                 self.ui.show_info(f"ℹ️  Getting info for {file_path}...")
+
+    def _generate_tool_metadata(self, tool_name: str, arguments: dict, result: str) -> str:
+        """Generate metadata string for tool call logging"""
+        if tool_name == "read_file":
+            file_path = arguments.get("file_path", "unknown")
+            # Parse result to get file stats
+            if "bytes" in result:
+                try:
+                    import os
+                    full_path = os.path.join(os.getcwd(), file_path)
+                    if os.path.exists(full_path):
+                        size = os.path.getsize(full_path)
+                        with open(full_path, 'r', encoding='utf-8') as f:
+                            lines = sum(1 for _ in f)
+                        return f"[Tool] read_file: {file_path} ({size:,} bytes, {lines} lines)"
+                except:
+                    pass
+            return f"[Tool] read_file: {file_path}"
+        
+        elif tool_name == "list_files":
+            directory = arguments.get("directory", ".")
+            pattern = arguments.get("pattern", "*")
+            # Count items from result
+            file_count = result.count("📄")
+            dir_count = result.count("📁")
+            total = file_count + dir_count
+            if pattern != "*":
+                return f"[Tool] list_files: {directory} (pattern: {pattern}, found {total} items)"
+            else:
+                return f"[Tool] list_files: {directory} (found {total} items)"
+        
+        elif tool_name == "get_file_info":
+            file_path = arguments.get("file_path", "unknown")
+            return f"[Tool] get_file_info: {file_path}"
+        
+        else:
+            return f"[Tool] {tool_name}: {str(arguments)}"
+
+    def get_tool_metadata(self) -> List[str]:
+        """Get collected tool metadata for this request"""
+        return self.tool_metadata.copy()
+
+    def clear_tool_metadata(self):
+        """Clear tool metadata for new request"""
+        self.tool_metadata.clear()
     
     def get_response(self, messages: List[Dict[str, str]], system_prompt: str) -> str:
         """
@@ -88,6 +134,9 @@ class AIProvider(ProviderInterface):
         """
         if not self.is_available():
             return f"{self._get_provider_name()} client not available. Please check your API key."
+        
+        # Clear tool metadata for new request
+        self.clear_tool_metadata()
         
         try:
             return self._make_api_call(messages, system_prompt)
@@ -154,14 +203,24 @@ class OpenAIProvider(AIProvider):
                 try:
                     arguments = json.loads(tc.function.arguments) if isinstance(tc.function.arguments, str) else tc.function.arguments
                     result = self.plugin_manager.execute_tool(tc.function.name, arguments)
+                    
+                    # Generate and store tool metadata
+                    metadata = self._generate_tool_metadata(tc.function.name, arguments, result)
+                    self.tool_metadata.append(metadata)
+                    
                     tool_results.append({
                         "tool_call_id": tc.id,
                         "output": result
                     })
                 except Exception as e:
+                    error_msg = f"Error executing tool: {str(e)}"
+                    # Still generate metadata for failed tools
+                    metadata = f"[Tool] {tc.function.name}: ERROR - {str(e)}"
+                    self.tool_metadata.append(metadata)
+                    
                     tool_results.append({
                         "tool_call_id": tc.id,
-                        "output": f"Error executing tool: {str(e)}"
+                        "output": error_msg
                     })
             
             # Add tool call results to conversation
@@ -258,12 +317,29 @@ class ClaudeProvider(AIProvider):
             tool_results = []
             
             for tool_call in tool_calls:
-                result = self.plugin_manager.execute_tool(tool_call.name, tool_call.input)
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": tool_call.id,
-                    "content": result
-                })
+                try:
+                    result = self.plugin_manager.execute_tool(tool_call.name, tool_call.input)
+                    
+                    # Generate and store tool metadata
+                    metadata = self._generate_tool_metadata(tool_call.name, tool_call.input, result)
+                    self.tool_metadata.append(metadata)
+                    
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": tool_call.id,
+                        "content": result
+                    })
+                except Exception as e:
+                    error_msg = f"Error executing tool: {str(e)}"
+                    # Still generate metadata for failed tools
+                    metadata = f"[Tool] {tool_call.name}: ERROR - {str(e)}"
+                    self.tool_metadata.append(metadata)
+                    
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": tool_call.id,
+                        "content": error_msg
+                    })
             
             # Add tool results to conversation
             current_messages = current_messages + [

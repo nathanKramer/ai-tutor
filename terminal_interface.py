@@ -352,6 +352,7 @@ Ready to start coding together! 🚀
         help_table.add_row("/log save", "Save conversation history to file")
         help_table.add_row("/resume", "List available conversation logs to resume")
         help_table.add_row("/resume <filename>", "Resume conversation from log file")
+        help_table.add_row("/resume latest", "Resume from auto-saved latest conversation")
         help_table.add_row("/help", "Show this help message")
         help_table.add_row("/clear", "Clear conversation history")
         help_table.add_row("/quit or /exit", "End the tutoring session")

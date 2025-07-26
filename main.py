@@ -96,6 +96,9 @@ class AIPairProgrammingTutor:
 
         # Display the response
         self.ui.show_ai_response(ai_response)
+        
+        # Auto-save conversation after each exchange
+        self.auto_save_conversation()
 
     def process_simple_ask(self, user_input: str):
         """Process user input using simple tutor (non-Socratic) approach"""
@@ -113,6 +116,9 @@ class AIPairProgrammingTutor:
 
         # Display the response
         self.ui.show_ai_response(ai_response)
+        
+        # Auto-save conversation after each exchange
+        self.auto_save_conversation()
 
     def process_raw_prompt(self, user_input: str):
         """Process user input as a completely raw prompt (no system prompt)"""
@@ -130,6 +136,9 @@ class AIPairProgrammingTutor:
 
         # Display the response
         self.ui.show_ai_response(ai_response)
+        
+        # Auto-save conversation after each exchange
+        self.auto_save_conversation()
 
     def execute_bash_command(self, command: str):
         """Execute a bash command and display the output"""
@@ -237,6 +246,8 @@ class AIPairProgrammingTutor:
             elif command.startswith('resume '):
                 # Resume from specific conversation log
                 filename = command[7:].strip()
+                if filename == 'latest':
+                    filename = 'latest.txt'
                 self.resume_conversation(filename)
 
             elif command.startswith('ask '):
@@ -327,7 +338,17 @@ Available Commands:
             log_output = f"Conversation Log ({len(messages)} messages):\n\n"
             
             for i, msg in enumerate(messages, 1):
-                role = "User" if msg["role"] == "user" else "AI"
+                if msg["role"] == "user":
+                    role = "User"
+                elif msg["role"] == "assistant":
+                    role = "AI"
+                elif msg["role"] == "tool":
+                    # Tool metadata - display without numbering but with indentation
+                    log_output += f"    {msg['content']}\n"
+                    continue
+                else:
+                    role = msg["role"].title()
+                
                 content = msg["content"]
                 log_output += f"[{i}] {role}: {content}\n\n"
             
@@ -365,7 +386,17 @@ Available Commands:
             log_content = f"AI Tutor Conversation Log\nSaved: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
             
             for i, msg in enumerate(messages, 1):
-                role = "User" if msg["role"] == "user" else "AI"
+                if msg["role"] == "user":
+                    role = "User"
+                elif msg["role"] == "assistant":
+                    role = "AI"
+                elif msg["role"] == "tool":
+                    # Tool metadata - display without numbering but with indentation
+                    log_content += f"    {msg['content']}\n"
+                    continue
+                else:
+                    role = msg["role"].title()
+                
                 content = msg["content"]
                 log_content += f"[{i}] {role}: {content}\n\n"
             
@@ -377,6 +408,52 @@ Available Commands:
             
         except Exception as e:
             self.ui.show_error(f"Failed to save conversation log: {e}")
+
+    def auto_save_conversation(self):
+        """Auto-save conversation to latest.txt"""
+        try:
+            if not self.ai_tutor:
+                return
+                
+            messages = self.ai_tutor.get_conversation_history()
+            
+            if not messages:
+                return
+            
+            # Create config directory if it doesn't exist
+            from pathlib import Path
+            import datetime
+            
+            config_dir = Path.home() / ".config" / "ai-tutor"
+            config_dir.mkdir(parents=True, exist_ok=True)
+            
+            filepath = config_dir / "latest.txt"
+            
+            # Format conversation for file
+            log_content = f"AI Tutor Conversation Log (Auto-saved)\nLast updated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+            
+            for i, msg in enumerate(messages, 1):
+                if msg["role"] == "user":
+                    role = "User"
+                elif msg["role"] == "assistant":
+                    role = "AI"
+                elif msg["role"] == "tool":
+                    # Tool metadata - display without numbering but with indentation
+                    log_content += f"    {msg['content']}\n"
+                    continue
+                else:
+                    role = msg["role"].title()
+                
+                content = msg["content"]
+                log_content += f"[{i}] {role}: {content}\n\n"
+            
+            # Save to file
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(log_content.strip())
+            
+        except Exception:
+            # Silently fail auto-save to not interrupt user experience
+            pass
 
     def list_conversation_logs(self):
         """List available conversation log files"""
@@ -439,30 +516,63 @@ Available Commands:
             with open(filepath, 'r', encoding='utf-8') as f:
                 content = f.read()
             
-            # Parse conversation entries
-            # Format: [N] Role: message content
-            pattern = r'\[(\d+)\] (User|AI): (.*?)(?=\n\[|\n*$)'
-            matches = re.findall(pattern, content, re.DOTALL)
-            
-            if not matches:
-                self.ui.show_error("Could not parse conversation log format.")
-                return
+            # Parse conversation entries and tool metadata
+            lines = content.split('\n')
             
             # Clear current conversation
             self.ai_tutor.clear_conversation()
             
-            # Load messages into conversation history
+            # Parse line by line to capture both numbered messages and tool metadata
             loaded_count = 0
-            for match in matches:
-                number, role, message = match
-                role_key = "user" if role == "User" else "assistant"
+            i = 0
+            while i < len(lines):
+                line = lines[i].strip()
                 
-                # Add to AI tutor's conversation history
-                self.ai_tutor.conversation_history.append({
-                    "role": role_key,
-                    "content": message.strip()
-                })
-                loaded_count += 1
+                # Skip empty lines and header lines
+                if not line or line.startswith("AI Tutor Conversation") or line.startswith("Saved:") or line.startswith("Last updated:"):
+                    i += 1
+                    continue
+                
+                # Check for tool metadata (indented lines starting with [Tool])
+                if line.startswith("    [Tool]"):
+                    self.ai_tutor.conversation_history.append({
+                        "role": "tool",
+                        "content": line.strip()
+                    })
+                    loaded_count += 1
+                    i += 1
+                    continue
+                
+                # Check for numbered conversation entries
+                pattern = r'^\[(\d+)\] (User|AI): (.*)$'
+                match = re.match(pattern, line)
+                if match:
+                    number, role, message_start = match.groups()
+                    role_key = "user" if role == "User" else "assistant"
+                    
+                    # Collect multi-line message content
+                    message_lines = [message_start]
+                    i += 1
+                    
+                    # Continue reading until we hit another numbered entry, tool metadata, or end
+                    while i < len(lines):
+                        next_line = lines[i]
+                        if (re.match(r'^\[\d+\]', next_line.strip()) or 
+                            next_line.strip().startswith("    [Tool]") or 
+                            not next_line.strip()):
+                            break
+                        message_lines.append(next_line)
+                        i += 1
+                    
+                    # Join message content and add to history
+                    full_message = '\n'.join(message_lines).strip()
+                    self.ai_tutor.conversation_history.append({
+                        "role": role_key,
+                        "content": full_message
+                    })
+                    loaded_count += 1
+                else:
+                    i += 1
             
             self.ui.show_success(f"Resumed conversation from {filename}")
             self.ui.show_info(f"Loaded {loaded_count} messages from conversation log")

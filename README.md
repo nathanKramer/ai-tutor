@@ -2,6 +2,8 @@
 
 **Note**: This project is a vibe-coded CLI agent that is "throw away" code at the moment.
 
+<img width="800" height="482" alt="Screenshot From 2025-07-26 16-46-14" src="https://github.com/user-attachments/assets/6a78f7e7-0f43-44db-b241-9a946701fee6" />
+
 ## Installation
 
 ### Prerequisites

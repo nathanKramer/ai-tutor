@@ -201,23 +201,16 @@ class TerminalInterface:
         
         # Create a stylized title
         title_art = Text()
-        title_art.append("   ╭─────────────────────────────────────╮\n", style="bright_blue")
-        title_art.append("   │  🤖  AI Programming Tutor  🚀       │\n", style="bright_blue")
-        title_art.append("   ╰─────────────────────────────────────╯", style="bright_blue")
+        title_art.append("   ╭─────────────────────────────────╮\n", style="bright_blue")
+        title_art.append("   │  🤖  AI Programming Tutor  🚀   │\n", style="bright_blue")
+        title_art.append("   ╰─────────────────────────────────╯",   style="bright_blue")
         
         welcome_content = """
 [bold cyan]Welcome to your AI pair programming partner![/bold cyan]
 
 [yellow]Quick Start:[/yellow]
 • Just type your question and press [bold]Enter[/bold]
-• Use [bold cyan]/help[/bold cyan] to see all commands
-• Press [bold]Tab[/bold] for autocomplete
-
-[green]Popular Commands:[/green]
-• [bold cyan]/role simple[/bold cyan] - Switch to direct answers
-• [bold cyan]/role short[/bold cyan] - Get brief responses  
-• [bold cyan]/ask <question>[/bold cyan] - Ask directly
-• [bold cyan]!<command>[/bold cyan] - Run bash commands
+• Use [bold cyan]/help[/bold cyan] to see available commands
 
 [dim]Ready to code together![/dim]
         """
@@ -239,7 +232,24 @@ class TerminalInterface:
     
     def show_processing_indicator(self):
         """Show that speech is being processed"""
-        self.console.print("🔄 [yellow]Processing your request...[/yellow]")
+        from rich.spinner import Spinner
+        from rich.live import Live
+        from rich.text import Text
+        import threading
+        import time
+        
+        # Create a spinner with custom text
+        spinner = Spinner("dots", text="[yellow]Processing your request...[/yellow]", style="yellow")
+        
+        # Store the live display for stopping later
+        self._live_display = Live(spinner, console=self.console, refresh_per_second=10)
+        self._live_display.start()
+    
+    def hide_processing_indicator(self):
+        """Hide the processing indicator"""
+        if hasattr(self, '_live_display') and self._live_display:
+            self._live_display.stop()
+            self._live_display = None
         
     def _parse_and_render_content(self, text: str):
         """Parse text for code blocks and render with syntax highlighting"""

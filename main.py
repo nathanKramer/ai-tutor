@@ -81,14 +81,19 @@ class AIPairProgrammingTutor:
 
         self.ui.show_processing_indicator()
 
-        # Get context about current directory/files for better responses
-        context = self._get_current_context()
+        try:
+            # Get context about current directory/files for better responses
+            context = self._get_current_context()
 
-        # Get AI response
-        ai_response = self.ai_tutor.get_response(user_input, context)
+            # Get AI response
+            ai_response = self.ai_tutor.get_response(user_input, context)
 
-        # Store for potential copying
-        self.last_ai_response = ai_response
+            # Store for potential copying
+            self.last_ai_response = ai_response
+
+        finally:
+            # Always hide the processing indicator
+            self.ui.hide_processing_indicator()
 
         # Display the response
         self.ui.show_ai_response(ai_response)
@@ -104,14 +109,19 @@ class AIPairProgrammingTutor:
 
         self.ui.show_processing_indicator()
 
-        # Get context about current directory/files for better responses
-        context = self._get_current_context()
+        try:
+            # Get context about current directory/files for better responses
+            context = self._get_current_context()
 
-        # Get AI response using simple tutor
-        ai_response = self.ai_tutor.get_simple_response(user_input, context)
+            # Get AI response using simple tutor
+            ai_response = self.ai_tutor.get_simple_response(user_input, context)
 
-        # Store for potential copying
-        self.last_ai_response = ai_response
+            # Store for potential copying
+            self.last_ai_response = ai_response
+
+        finally:
+            # Always hide the processing indicator
+            self.ui.hide_processing_indicator()
 
         # Display the response
         self.ui.show_ai_response(ai_response)
@@ -127,14 +137,19 @@ class AIPairProgrammingTutor:
 
         self.ui.show_processing_indicator()
 
-        # Get context about current directory/files for better responses
-        context = self._get_current_context()
+        try:
+            # Get context about current directory/files for better responses
+            context = self._get_current_context()
 
-        # Get AI response using raw prompt (no system prompt)
-        ai_response = self.ai_tutor.get_raw_response(user_input, context)
+            # Get AI response using raw prompt (no system prompt)
+            ai_response = self.ai_tutor.get_raw_response(user_input, context)
 
-        # Store for potential copying
-        self.last_ai_response = ai_response
+            # Store for potential copying
+            self.last_ai_response = ai_response
+
+        finally:
+            # Always hide the processing indicator
+            self.ui.hide_processing_indicator()
 
         # Display the response
         self.ui.show_ai_response(ai_response)

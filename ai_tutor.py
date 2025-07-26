@@ -77,15 +77,6 @@ class AITutor(TutorInterface):
         # Get response from current provider
         ai_response = self.current_provider.get_response(recent_history, self.system_prompt)
         
-        # Add tool metadata if any tools were used
-        if hasattr(self.current_provider, 'get_tool_metadata'):
-            tool_metadata = self.current_provider.get_tool_metadata()
-            for metadata in tool_metadata:
-                self.conversation_history.append({
-                    "role": "system",
-                    "content": metadata
-                })
-        
         # Add AI response to history
         self.conversation_history.append({
             "role": "assistant",
@@ -128,15 +119,6 @@ class AITutor(TutorInterface):
         
         # Get response from current provider using simple prompt
         ai_response = self.current_provider.get_response(recent_history, simple_prompt)
-        
-        # Add tool metadata if any tools were used
-        if hasattr(self.current_provider, 'get_tool_metadata'):
-            tool_metadata = self.current_provider.get_tool_metadata()
-            for metadata in tool_metadata:
-                self.conversation_history.append({
-                    "role": "system",
-                    "content": metadata
-                })
         
         # Add AI response to history
         self.conversation_history.append({

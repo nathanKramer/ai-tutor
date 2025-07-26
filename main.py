@@ -334,23 +334,16 @@ Available Commands:
             
             log_output = f"Conversation Log ({len(messages)} messages):\n\n"
             
-            message_count = 0
-            for msg in messages:
+            for i, msg in enumerate(messages, 1):
                 if msg["role"] == "user":
                     role = "User"
-                    message_count += 1
-                    log_output += f"[{message_count}] {role}: {msg['content']}\n\n"
                 elif msg["role"] == "assistant":
                     role = "AI"
-                    message_count += 1
-                    log_output += f"[{message_count}] {role}: {msg['content']}\n\n"
-                elif msg["role"] == "system" and msg["content"].startswith("[Tool]"):
-                    # Tool metadata - display without numbering but with indentation
-                    log_output += f"    {msg['content']}\n"
                 else:
                     role = msg["role"].title()
-                    message_count += 1
-                    log_output += f"[{message_count}] {role}: {msg['content']}\n\n"
+                
+                content = msg["content"]
+                log_output += f"[{i}] {role}: {content}\n\n"
             
             self.ui.show_info(log_output.strip())
             
@@ -536,13 +529,8 @@ Available Commands:
                             
                             # Load message entries
                             if entry.get("type") == "message":
-                                role = entry["role"]
-                                # Convert old "tool" role to "system" for compatibility
-                                if role == "tool" and entry["content"].startswith("[Tool]"):
-                                    role = "system"
-                                
                                 self.ai_tutor.conversation_history.append({
-                                    "role": role,
+                                    "role": entry["role"],
                                     "content": entry["content"]
                                 })
                                 loaded_count += 1
@@ -579,12 +567,8 @@ Available Commands:
                 i += 1
                 continue
             
-            # Check for tool metadata (indented lines starting with [Tool])
+            # Skip tool metadata lines (legacy format compatibility)
             if line.startswith("    [Tool]"):
-                self.ai_tutor.conversation_history.append({
-                    "role": "system",
-                    "content": line.strip()
-                })
                 i += 1
                 continue
             

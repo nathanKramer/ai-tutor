@@ -14,7 +14,7 @@ class Config:
         "ai_provider": "openai",  # "openai" or "claude"
         "models": {
             "openai": "gpt-3.5-turbo",
-            "claude": "claude-3-haiku-20240307"
+            "claude": "claude-sonnet-4-20250514"
         },
         "max_tokens": 1000,
         "temperature": 0.7,

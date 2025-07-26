@@ -58,7 +58,7 @@ python3 main.py --help
 
 **AI Integration**: Supports multiple AI providers:
 - **OpenAI**: GPT models (default: gpt-3.5-turbo)
-- **Claude**: Anthropic models (default: claude-3-haiku-20240307)
+- **Claude**: Anthropic models (default: claude-sonnet-4-20250514)
 
 Features conversation history management (configurable limit) and context-aware responses based on current directory code files.
 
@@ -81,7 +81,7 @@ The AI tutor maintains conversation context and incorporates information about t
 
 **Default Configuration:**
 - Provider: OpenAI (can be switched to Claude)
-- Models: gpt-3.5-turbo (OpenAI), claude-3-haiku-20240307 (Claude)
+- Models: gpt-3.5-turbo (OpenAI), claude-sonnet-4-20250514 (Claude)
 - Max tokens: 200
 - Temperature: 0.7
 - Conversation history limit: 10 messages
@@ -151,7 +151,7 @@ The built executable works on the target platform without requiring Python insta
 - Other OpenAI chat models
 
 **Claude Models:**
-- claude-3-haiku-20240307 (default)
+- claude-sonnet-4-20250514 (default)
 - claude-3-sonnet-20240229
 - claude-3-opus-20240229
 - Other Anthropic models

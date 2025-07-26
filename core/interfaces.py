@@ -75,29 +75,6 @@ class ConversationManagerInterface(ABC):
         pass
 
 
-class ConfigManagerInterface(ABC):
-    """Interface for configuration management"""
-    
-    @abstractmethod
-    def get(self, key: str, default: Any = None) -> Any:
-        """Get configuration value"""
-        pass
-    
-    @abstractmethod
-    def set(self, key: str, value: Any) -> None:
-        """Set configuration value"""
-        pass
-    
-    @abstractmethod
-    def save(self) -> None:
-        """Save configuration to persistent storage"""
-        pass
-    
-    @abstractmethod
-    def validate(self) -> bool:
-        """Validate current configuration"""
-        pass
-
 
 class ProviderInterface(ABC):
     """Abstract interface for AI providers"""

@@ -19,7 +19,6 @@ from ai_tutor import AITutor
 from terminal_interface import TerminalInterface
 from config import Config
 from core.dependency_container import get_container
-from core.config_manager import JSONConfigManager
 from core.conversation_manager import InMemoryConversationManager
 from core.prompt_manager import PromptManager
 from core.logger import create_logger
@@ -56,7 +55,6 @@ class AIPairProgrammingTutor:
         # Register core services
         container.register_singleton('ui', TerminalInterface())
         container.register_singleton('config', Config())
-        container.register_singleton('json_config_manager', JSONConfigManager())
         container.register_singleton('conversation_manager', InMemoryConversationManager())
         container.register_singleton('prompt_manager', PromptManager())
         container.register_singleton('logger', logger)

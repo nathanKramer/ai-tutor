@@ -22,7 +22,7 @@ class Config:
         "role": "tutor"  # Default role: "tutor", "simple", or "short"
     }
     
-    def __init__(self, config_file: str = None):
+    def __init__(self, config_file: str | None = None):
         if config_file is None:
             # Use XDG config directory standard
             config_dir = Path.home() / ".config" / "ai-tutor"
@@ -96,7 +96,7 @@ class Config:
         else:
             raise ValueError(f"Unsupported provider: {provider}")
     
-    def get_model_for_provider(self, provider: str = None) -> str:
+    def get_model_for_provider(self, provider: str | None = None) -> str:
         """Get model name for specified provider"""
         if provider is None:
             provider = self.get_current_provider()

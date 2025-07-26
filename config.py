@@ -1,5 +1,6 @@
 import os
 import json
+from pathlib import Path
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 from core.config_validator import validate_config, ValidationError
@@ -20,8 +21,14 @@ class Config:
         "conversation_history_limit": 10
     }
     
-    def __init__(self, config_file: str = "tutor_config.json"):
-        self.config_file = config_file
+    def __init__(self, config_file: str = None):
+        if config_file is None:
+            # Use XDG config directory standard
+            config_dir = Path.home() / ".config" / "ai-tutor"
+            config_dir.mkdir(parents=True, exist_ok=True)
+            self.config_file = str(config_dir / "tutor_config.json")
+        else:
+            self.config_file = config_file
         self.config = self._load_config()
     
     def _load_config(self) -> Dict[str, Any]:

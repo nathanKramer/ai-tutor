@@ -313,8 +313,10 @@ Available Commands:
                     self.ui.show_success("Switched to Socratic tutor mode")
                 elif role == "simple":
                     self.ui.show_success("Switched to simple tutor mode")
+                elif role == "short":
+                    self.ui.show_success("Switched to short response mode")
             else:
-                self.ui.show_error(f"Unknown role: '{role}'. Available roles: tutor, simple")
+                self.ui.show_error(f"Unknown role: '{role}'. Available roles: tutor, simple, short")
                 
         except Exception as e:
             self.ui.show_error(f"Failed to switch role: {e}")

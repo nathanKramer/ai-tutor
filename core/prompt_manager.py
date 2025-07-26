@@ -75,6 +75,15 @@ class PromptManager:
         
         return self.combine_prompts(simple_prompts)
     
+    def get_short_tutor_prompt(self) -> str:
+        """Get the short tutor prompt (one-line responses)"""
+        short_prompts = [
+            "short_tutor",
+            "tool_usage"
+        ]
+        
+        return self.combine_prompts(short_prompts)
+    
     def reload_prompts(self):
         """Clear cache and reload all prompts"""
         self._prompt_cache.clear()

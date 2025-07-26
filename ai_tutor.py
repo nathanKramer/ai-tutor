@@ -183,6 +183,9 @@ class AITutor(TutorInterface):
             elif role == "simple":
                 self.system_prompt = self.prompt_manager.get_simple_tutor_prompt()
                 return True
+            elif role == "short":
+                self.system_prompt = self.prompt_manager.get_short_tutor_prompt()
+                return True
             else:
                 return False
         except Exception:

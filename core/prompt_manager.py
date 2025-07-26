@@ -70,7 +70,6 @@ class PromptManager:
         """Get the simple tutor prompt (more direct, less Socratic)"""
         simple_prompts = [
             "simple_tutor",
-            "problem_progression",
             "tool_usage"
         ]
         

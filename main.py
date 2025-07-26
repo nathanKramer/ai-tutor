@@ -40,6 +40,7 @@ class AIPairProgrammingTutor:
         self.ui = TerminalInterface()
         self.config = Config()
         self.ai_tutor = None
+        self.last_ai_response = None  # Store latest AI response for copying
         
         # Initialize AI tutor
         self._init_ai_tutor()
@@ -86,6 +87,9 @@ class AIPairProgrammingTutor:
         # Get AI response
         ai_response = self.ai_tutor.get_response(user_input, context)
 
+        # Store for potential copying
+        self.last_ai_response = ai_response
+
         # Display the response
         self.ui.show_ai_response(ai_response)
         
@@ -106,6 +110,9 @@ class AIPairProgrammingTutor:
         # Get AI response using simple tutor
         ai_response = self.ai_tutor.get_simple_response(user_input, context)
 
+        # Store for potential copying
+        self.last_ai_response = ai_response
+
         # Display the response
         self.ui.show_ai_response(ai_response)
         
@@ -125,6 +132,9 @@ class AIPairProgrammingTutor:
 
         # Get AI response using raw prompt (no system prompt)
         ai_response = self.ai_tutor.get_raw_response(user_input, context)
+
+        # Store for potential copying
+        self.last_ai_response = ai_response
 
         # Display the response
         self.ui.show_ai_response(ai_response)
@@ -244,6 +254,10 @@ class AIPairProgrammingTutor:
                     filename = 'latest.jsonl'
                 self.resume_conversation(filename)
 
+            elif command == 'copy':
+                # Copy latest AI response to clipboard
+                self.copy_last_response()
+
             elif command.startswith('role '):
                 # Switch system prompt role
                 role = command[5:].strip().lower()
@@ -340,6 +354,51 @@ Available Commands:
                 
         except Exception as e:
             self.ui.show_error(f"Failed to switch role: {e}")
+
+    def copy_last_response(self):
+        """Copy the last AI response to clipboard"""
+        try:
+            if not self.last_ai_response:
+                self.ui.show_info("No AI response to copy yet.")
+                return
+            
+            # Try to import pyperclip
+            try:
+                import pyperclip
+                pyperclip.copy(self.last_ai_response)
+                self.ui.show_success("Last AI response copied to clipboard!")
+            except ImportError:
+                # Fallback to system commands
+                import subprocess
+                import platform
+                
+                system = platform.system().lower()
+                if system == "darwin":  # macOS
+                    subprocess.run(["pbcopy"], input=self.last_ai_response.encode(), check=True)
+                elif system == "linux":
+                    # Try xclip first, then xsel
+                    try:
+                        subprocess.run(["xclip", "-selection", "clipboard"], 
+                                     input=self.last_ai_response.encode(), check=True)
+                    except FileNotFoundError:
+                        try:
+                            subprocess.run(["xsel", "--clipboard", "--input"], 
+                                         input=self.last_ai_response.encode(), check=True)
+                        except FileNotFoundError:
+                            self.ui.show_error("No clipboard utility found. Install xclip or xsel.")
+                            return
+                elif system == "windows":
+                    subprocess.run(["clip"], input=self.last_ai_response.encode(), check=True)
+                else:
+                    self.ui.show_error("Clipboard copying not supported on this platform.")
+                    return
+                
+                self.ui.show_success("Last AI response copied to clipboard!")
+                
+        except subprocess.CalledProcessError:
+            self.ui.show_error("Failed to copy to clipboard.")
+        except Exception as e:
+            self.ui.show_error(f"Failed to copy to clipboard: {e}")
 
     def show_conversation_log(self):
         """Show conversation history"""

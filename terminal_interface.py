@@ -30,6 +30,7 @@ class CommandCompleter(Completer):
             '/log',
             '/resume',
             '/role',
+            '/copy',
             '/clear',
             '/quit',
             '/exit'
@@ -195,25 +196,43 @@ class TerminalInterface:
         
     def show_welcome(self):
         """Display welcome message"""
-        welcome_text = """
-🤖 AI Programming Tutor
+        from rich.align import Align
+        from rich.text import Text
+        
+        # Create a stylized title
+        title_art = Text()
+        title_art.append("   ╭─────────────────────────────────────╮\n", style="bright_blue")
+        title_art.append("   │  🤖  AI Programming Tutor  🚀       │\n", style="bright_blue")
+        title_art.append("   ╰─────────────────────────────────────╯", style="bright_blue")
+        
+        welcome_content = """
+[bold cyan]Welcome to your AI pair programming partner![/bold cyan]
 
-Welcome to your AI pair programming partner!
+[yellow]Quick Start:[/yellow]
+• Just type your question and press [bold]Enter[/bold]
+• Use [bold cyan]/help[/bold cyan] to see all commands
+• Press [bold]Tab[/bold] for autocomplete
 
-How to Use:
-• Type messages to the tutor
-• Press Enter to submit, Alt+Enter for new lines
-• Type /help to see all available commands
-• Press Tab for command and file/folder autocomplete
-• Use !<command> for bash commands (e.g., !ls)
+[green]Popular Commands:[/green]
+• [bold cyan]/role simple[/bold cyan] - Switch to direct answers
+• [bold cyan]/role short[/bold cyan] - Get brief responses  
+• [bold cyan]/ask <question>[/bold cyan] - Ask directly
+• [bold cyan]!<command>[/bold cyan] - Run bash commands
 
-Ready to start coding together! 🚀
+[dim]Ready to code together![/dim]
         """
         
+        # Center the title art
+        self.console.print(Align.center(title_art))
+        self.console.print()
+        
+        # Show the main content in a panel
         panel = Panel(
-            welcome_text.strip(),
-            title="[bold blue]AI Tutor Session[/bold blue]",
-            border_style="blue"
+            welcome_content.strip(),
+            border_style="bright_blue",
+            padding=(1, 2),
+            title="[bold bright_white]Session Started[/bold bright_white]",
+            title_align="center"
         )
         self.console.print(panel)
     
@@ -365,6 +384,7 @@ Ready to start coding together! 🚀
         help_table.add_row("/resume <filename>", "Resume conversation from log file")
         help_table.add_row("/resume latest", "Resume from auto-saved latest conversation")
         help_table.add_row("/role <role_name>", "Switch system prompt")
+        help_table.add_row("/copy", "Copy last AI response to clipboard")
         help_table.add_row("/help", "Show this help message")
         help_table.add_row("/clear", "Clear conversation history")
         help_table.add_row("/quit or /exit", "End the tutoring session")

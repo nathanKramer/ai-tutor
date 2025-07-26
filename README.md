@@ -6,6 +6,14 @@
 
 Currently supports anthropic and openai, basic tool calling (list files / read files), several different system prompts, abilitiy to resume conversations after closing, and more.
 
+A note on the default "socratic" tutor:
+
+My goal was to be able to have an interactive session with the AI serving as a teacher.
+This means it will hopefully not "spoil" the answers to programming problems, and will instead ask you to think for yourself.
+
+You can use `/ask` to get a response to a direct question, sidetracking this socratic style.
+You can also use `/role` to change the system prompt. Ideally system prompts would be totally customizable but I haven't gotten to that yet.
+
 ## Installation
 
 ### Prerequisites

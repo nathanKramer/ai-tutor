@@ -82,7 +82,7 @@ class AITutor(TutorInterface):
             tool_metadata = self.current_provider.get_tool_metadata()
             for metadata in tool_metadata:
                 self.conversation_history.append({
-                    "role": "tool",
+                    "role": "system",
                     "content": metadata
                 })
         
@@ -134,7 +134,7 @@ class AITutor(TutorInterface):
             tool_metadata = self.current_provider.get_tool_metadata()
             for metadata in tool_metadata:
                 self.conversation_history.append({
-                    "role": "tool",
+                    "role": "system",
                     "content": metadata
                 })
         

@@ -247,7 +247,7 @@ class AIPairProgrammingTutor:
                 # Resume from specific conversation log
                 filename = command[7:].strip()
                 if filename == 'latest':
-                    filename = 'latest.txt'
+                    filename = 'latest.jsonl'
                 self.resume_conversation(filename)
 
             elif command.startswith('ask '):
@@ -337,20 +337,23 @@ Available Commands:
             
             log_output = f"Conversation Log ({len(messages)} messages):\n\n"
             
-            for i, msg in enumerate(messages, 1):
+            message_count = 0
+            for msg in messages:
                 if msg["role"] == "user":
                     role = "User"
+                    message_count += 1
+                    log_output += f"[{message_count}] {role}: {msg['content']}\n\n"
                 elif msg["role"] == "assistant":
                     role = "AI"
-                elif msg["role"] == "tool":
+                    message_count += 1
+                    log_output += f"[{message_count}] {role}: {msg['content']}\n\n"
+                elif msg["role"] == "system" and msg["content"].startswith("[Tool]"):
                     # Tool metadata - display without numbering but with indentation
                     log_output += f"    {msg['content']}\n"
-                    continue
                 else:
                     role = msg["role"].title()
-                
-                content = msg["content"]
-                log_output += f"[{i}] {role}: {content}\n\n"
+                    message_count += 1
+                    log_output += f"[{message_count}] {role}: {msg['content']}\n\n"
             
             self.ui.show_info(log_output.strip())
             
@@ -379,30 +382,31 @@ Available Commands:
             
             # Generate filename with timestamp
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"conversation_log_{timestamp}.txt"
+            filename = f"conversation_log_{timestamp}.jsonl"
             filepath = config_dir / filename
             
-            # Format conversation for file
-            log_content = f"AI Tutor Conversation Log\nSaved: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-            
-            for i, msg in enumerate(messages, 1):
-                if msg["role"] == "user":
-                    role = "User"
-                elif msg["role"] == "assistant":
-                    role = "AI"
-                elif msg["role"] == "tool":
-                    # Tool metadata - display without numbering but with indentation
-                    log_content += f"    {msg['content']}\n"
-                    continue
-                else:
-                    role = msg["role"].title()
-                
-                content = msg["content"]
-                log_content += f"[{i}] {role}: {content}\n\n"
-            
-            # Save to file
+            # Save conversation as JSONL
+            import json
             with open(filepath, 'w', encoding='utf-8') as f:
-                f.write(log_content.strip())
+                # Write metadata header
+                header = {
+                    "type": "metadata",
+                    "title": "AI Tutor Conversation Log",
+                    "saved": datetime.datetime.now().isoformat(),
+                    "message_count": len(messages)
+                }
+                f.write(json.dumps(header) + '\n')
+                
+                # Write each message as a JSON line
+                for i, msg in enumerate(messages):
+                    log_entry = {
+                        "type": "message",
+                        "index": i + 1,
+                        "role": msg["role"],
+                        "content": msg["content"],
+                        "timestamp": datetime.datetime.now().isoformat()
+                    }
+                    f.write(json.dumps(log_entry) + '\n')
             
             self.ui.show_success(f"Conversation log saved to: {filepath}")
             
@@ -427,29 +431,30 @@ Available Commands:
             config_dir = Path.home() / ".config" / "ai-tutor"
             config_dir.mkdir(parents=True, exist_ok=True)
             
-            filepath = config_dir / "latest.txt"
+            filepath = config_dir / "latest.jsonl"
             
-            # Format conversation for file
-            log_content = f"AI Tutor Conversation Log (Auto-saved)\nLast updated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-            
-            for i, msg in enumerate(messages, 1):
-                if msg["role"] == "user":
-                    role = "User"
-                elif msg["role"] == "assistant":
-                    role = "AI"
-                elif msg["role"] == "tool":
-                    # Tool metadata - display without numbering but with indentation
-                    log_content += f"    {msg['content']}\n"
-                    continue
-                else:
-                    role = msg["role"].title()
-                
-                content = msg["content"]
-                log_content += f"[{i}] {role}: {content}\n\n"
-            
-            # Save to file
+            # Save conversation as JSONL
+            import json
             with open(filepath, 'w', encoding='utf-8') as f:
-                f.write(log_content.strip())
+                # Write metadata header
+                header = {
+                    "type": "metadata",
+                    "title": "AI Tutor Conversation Log (Auto-saved)",
+                    "last_updated": datetime.datetime.now().isoformat(),
+                    "message_count": len(messages)
+                }
+                f.write(json.dumps(header) + '\n')
+                
+                # Write each message as a JSON line
+                for i, msg in enumerate(messages):
+                    log_entry = {
+                        "type": "message",
+                        "index": i + 1,
+                        "role": msg["role"],
+                        "content": msg["content"],
+                        "timestamp": datetime.datetime.now().isoformat()
+                    }
+                    f.write(json.dumps(log_entry) + '\n')
             
         except Exception:
             # Silently fail auto-save to not interrupt user experience
@@ -467,8 +472,8 @@ Available Commands:
                 self.ui.show_info("No conversation logs directory found.")
                 return
             
-            # Find all conversation log files
-            log_files = list(config_dir.glob("conversation_log_*.txt"))
+            # Find all conversation log files (both old .txt and new .jsonl)
+            log_files = list(config_dir.glob("conversation_log_*.txt")) + list(config_dir.glob("conversation_log_*.jsonl"))
             
             if not log_files:
                 self.ui.show_info("No conversation logs found.")
@@ -503,7 +508,7 @@ Available Commands:
                 return
             
             from pathlib import Path
-            import re
+            import json
             
             config_dir = Path.home() / ".config" / "ai-tutor"
             filepath = config_dir / filename
@@ -512,73 +517,109 @@ Available Commands:
                 self.ui.show_error(f"Conversation log file not found: {filename}")
                 return
             
-            # Read and parse the conversation log
-            with open(filepath, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
-            # Parse conversation entries and tool metadata
-            lines = content.split('\n')
-            
             # Clear current conversation
             self.ai_tutor.clear_conversation()
             
-            # Parse line by line to capture both numbered messages and tool metadata
-            loaded_count = 0
-            i = 0
-            while i < len(lines):
-                line = lines[i].strip()
-                
-                # Skip empty lines and header lines
-                if not line or line.startswith("AI Tutor Conversation") or line.startswith("Saved:") or line.startswith("Last updated:"):
-                    i += 1
-                    continue
-                
-                # Check for tool metadata (indented lines starting with [Tool])
-                if line.startswith("    [Tool]"):
-                    self.ai_tutor.conversation_history.append({
-                        "role": "tool",
-                        "content": line.strip()
-                    })
-                    loaded_count += 1
-                    i += 1
-                    continue
-                
-                # Check for numbered conversation entries
-                pattern = r'^\[(\d+)\] (User|AI): (.*)$'
-                match = re.match(pattern, line)
-                if match:
-                    number, role, message_start = match.groups()
-                    role_key = "user" if role == "User" else "assistant"
-                    
-                    # Collect multi-line message content
-                    message_lines = [message_start]
-                    i += 1
-                    
-                    # Continue reading until we hit another numbered entry, tool metadata, or end
-                    while i < len(lines):
-                        next_line = lines[i]
-                        if (re.match(r'^\[\d+\]', next_line.strip()) or 
-                            next_line.strip().startswith("    [Tool]") or 
-                            not next_line.strip()):
-                            break
-                        message_lines.append(next_line)
-                        i += 1
-                    
-                    # Join message content and add to history
-                    full_message = '\n'.join(message_lines).strip()
-                    self.ai_tutor.conversation_history.append({
-                        "role": role_key,
-                        "content": full_message
-                    })
-                    loaded_count += 1
-                else:
-                    i += 1
+            # Parse based on file extension
+            if filename.endswith('.jsonl'):
+                # Parse JSONL format
+                loaded_count = 0
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    for line_num, line in enumerate(f, 1):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        
+                        try:
+                            entry = json.loads(line)
+                            
+                            # Skip metadata entries
+                            if entry.get("type") == "metadata":
+                                continue
+                            
+                            # Load message entries
+                            if entry.get("type") == "message":
+                                role = entry["role"]
+                                # Convert old "tool" role to "system" for compatibility
+                                if role == "tool" and entry["content"].startswith("[Tool]"):
+                                    role = "system"
+                                
+                                self.ai_tutor.conversation_history.append({
+                                    "role": role,
+                                    "content": entry["content"]
+                                })
+                                loaded_count += 1
+                                
+                        except json.JSONDecodeError as e:
+                            self.ui.show_error(f"Invalid JSON on line {line_num}: {e}")
+                            return
+            
+            else:
+                # Legacy .txt format parsing (for backward compatibility)
+                self._parse_legacy_log_format(filepath)
+                loaded_count = len(self.ai_tutor.conversation_history)
             
             self.ui.show_success(f"Resumed conversation from {filename}")
             self.ui.show_info(f"Loaded {loaded_count} messages from conversation log")
             
         except Exception as e:
             self.ui.show_error(f"Failed to resume conversation: {e}")
+
+    def _parse_legacy_log_format(self, filepath):
+        """Parse legacy .txt format logs"""
+        import re
+        
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        lines = content.split('\n')
+        i = 0
+        while i < len(lines):
+            line = lines[i].strip()
+            
+            # Skip empty lines and header lines
+            if not line or line.startswith("AI Tutor Conversation") or line.startswith("Saved:") or line.startswith("Last updated:"):
+                i += 1
+                continue
+            
+            # Check for tool metadata (indented lines starting with [Tool])
+            if line.startswith("    [Tool]"):
+                self.ai_tutor.conversation_history.append({
+                    "role": "system",
+                    "content": line.strip()
+                })
+                i += 1
+                continue
+            
+            # Check for numbered conversation entries
+            pattern = r'^\[(\d+)\] (User|AI): (.*)$'
+            match = re.match(pattern, line)
+            if match:
+                number, role, message_start = match.groups()
+                role_key = "user" if role == "User" else "assistant"
+                
+                # Collect multi-line message content
+                message_lines = [message_start]
+                i += 1
+                
+                # Continue reading until we hit another numbered entry, tool metadata, or end
+                while i < len(lines):
+                    next_line = lines[i]
+                    if (re.match(r'^\[\d+\]', next_line.strip()) or 
+                        next_line.strip().startswith("    [Tool]") or 
+                        not next_line.strip()):
+                        break
+                    message_lines.append(next_line)
+                    i += 1
+                
+                # Join message content and add to history
+                full_message = '\n'.join(message_lines).strip()
+                self.ai_tutor.conversation_history.append({
+                    "role": role_key,
+                    "content": full_message
+                })
+            else:
+                i += 1
 
     def run(self):
         """Main application loop"""

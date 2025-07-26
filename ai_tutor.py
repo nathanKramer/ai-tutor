@@ -166,6 +166,10 @@ class AITutor(TutorInterface):
         """Clear conversation history"""
         self.conversation_history = []
     
+    def get_conversation_history(self) -> List[Dict[str, str]]:
+        """Get current conversation history"""
+        return self.conversation_history.copy()
+    
     def set_system_prompt(self, prompt: str):
         """Update the system prompt"""
         self.system_prompt = prompt

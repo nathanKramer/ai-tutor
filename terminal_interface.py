@@ -27,6 +27,8 @@ class CommandCompleter(Completer):
             '/provider',
             '/config', 
             '/help',
+            '/log',
+            '/resume',
             '/clear',
             '/quit',
             '/exit'
@@ -346,6 +348,10 @@ Ready to start coding together! 🚀
         help_table.add_row("/prompt <text>", "Send completely raw prompt (no system prompt)")
         help_table.add_row("/provider <name>", "Switch AI provider (openai, claude)")
         help_table.add_row("/config", "Show current configuration")
+        help_table.add_row("/log", "View conversation history")
+        help_table.add_row("/log save", "Save conversation history to file")
+        help_table.add_row("/resume", "List available conversation logs to resume")
+        help_table.add_row("/resume <filename>", "Resume conversation from log file")
         help_table.add_row("/help", "Show this help message")
         help_table.add_row("/clear", "Clear conversation history")
         help_table.add_row("/quit or /exit", "End the tutoring session")

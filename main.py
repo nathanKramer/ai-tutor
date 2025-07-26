@@ -218,6 +218,27 @@ class AIPairProgrammingTutor:
                 # Show current configuration
                 self.show_config()
 
+            elif command == 'log':
+                # Show conversation log
+                self.show_conversation_log()
+
+            elif command.startswith('log '):
+                # Save conversation log to file
+                args = command[4:].strip()
+                if args == 'save':
+                    self.save_conversation_log()
+                else:
+                    self.ui.show_info("Usage: /log or /log save")
+
+            elif command == 'resume':
+                # List available conversation logs
+                self.list_conversation_logs()
+
+            elif command.startswith('resume '):
+                # Resume from specific conversation log
+                filename = command[7:].strip()
+                self.resume_conversation(filename)
+
             elif command.startswith('ask '):
                 # Use simple tutor for direct question
                 question = command[4:].strip()
@@ -290,6 +311,164 @@ Available Commands:
         except Exception as e:
             self.ui.show_error(f"Failed to show config: {e}")
 
+    def show_conversation_log(self):
+        """Show conversation history"""
+        try:
+            if not self.ai_tutor:
+                self.ui.show_info("AI tutor not initialized yet.")
+                return
+                
+            messages = self.ai_tutor.get_conversation_history()
+            
+            if not messages:
+                self.ui.show_info("No conversation history yet.")
+                return
+            
+            log_output = f"Conversation Log ({len(messages)} messages):\n\n"
+            
+            for i, msg in enumerate(messages, 1):
+                role = "User" if msg["role"] == "user" else "AI"
+                content = msg["content"]
+                log_output += f"[{i}] {role}: {content}\n\n"
+            
+            self.ui.show_info(log_output.strip())
+            
+        except Exception as e:
+            self.ui.show_error(f"Failed to show conversation log: {e}")
+
+    def save_conversation_log(self):
+        """Save conversation history to file"""
+        try:
+            if not self.ai_tutor:
+                self.ui.show_info("AI tutor not initialized yet.")
+                return
+                
+            messages = self.ai_tutor.get_conversation_history()
+            
+            if not messages:
+                self.ui.show_info("No conversation history to save.")
+                return
+            
+            # Create config directory if it doesn't exist
+            from pathlib import Path
+            import datetime
+            
+            config_dir = Path.home() / ".config" / "ai-tutor"
+            config_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Generate filename with timestamp
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"conversation_log_{timestamp}.txt"
+            filepath = config_dir / filename
+            
+            # Format conversation for file
+            log_content = f"AI Tutor Conversation Log\nSaved: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+            
+            for i, msg in enumerate(messages, 1):
+                role = "User" if msg["role"] == "user" else "AI"
+                content = msg["content"]
+                log_content += f"[{i}] {role}: {content}\n\n"
+            
+            # Save to file
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(log_content.strip())
+            
+            self.ui.show_success(f"Conversation log saved to: {filepath}")
+            
+        except Exception as e:
+            self.ui.show_error(f"Failed to save conversation log: {e}")
+
+    def list_conversation_logs(self):
+        """List available conversation log files"""
+        try:
+            from pathlib import Path
+            import os
+            
+            config_dir = Path.home() / ".config" / "ai-tutor"
+            
+            if not config_dir.exists():
+                self.ui.show_info("No conversation logs directory found.")
+                return
+            
+            # Find all conversation log files
+            log_files = list(config_dir.glob("conversation_log_*.txt"))
+            
+            if not log_files:
+                self.ui.show_info("No conversation logs found.")
+                return
+            
+            # Sort by modification time (newest first)
+            log_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+            
+            logs_info = "Available conversation logs:\n\n"
+            for i, log_file in enumerate(log_files, 1):
+                # Get file info
+                stat = log_file.stat()
+                import datetime
+                mod_time = datetime.datetime.fromtimestamp(stat.st_mtime)
+                size = stat.st_size
+                
+                logs_info += f"[{i}] {log_file.name}\n"
+                logs_info += f"    Modified: {mod_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+                logs_info += f"    Size: {size} bytes\n\n"
+            
+            logs_info += "Usage: /resume <filename> to load a conversation"
+            self.ui.show_info(logs_info.strip())
+            
+        except Exception as e:
+            self.ui.show_error(f"Failed to list conversation logs: {e}")
+
+    def resume_conversation(self, filename: str):
+        """Resume conversation from log file"""
+        try:
+            if not self.ai_tutor:
+                self.ui.show_info("AI tutor not initialized yet.")
+                return
+            
+            from pathlib import Path
+            import re
+            
+            config_dir = Path.home() / ".config" / "ai-tutor"
+            filepath = config_dir / filename
+            
+            if not filepath.exists():
+                self.ui.show_error(f"Conversation log file not found: {filename}")
+                return
+            
+            # Read and parse the conversation log
+            with open(filepath, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Parse conversation entries
+            # Format: [N] Role: message content
+            pattern = r'\[(\d+)\] (User|AI): (.*?)(?=\n\[|\n*$)'
+            matches = re.findall(pattern, content, re.DOTALL)
+            
+            if not matches:
+                self.ui.show_error("Could not parse conversation log format.")
+                return
+            
+            # Clear current conversation
+            self.ai_tutor.clear_conversation()
+            
+            # Load messages into conversation history
+            loaded_count = 0
+            for match in matches:
+                number, role, message = match
+                role_key = "user" if role == "User" else "assistant"
+                
+                # Add to AI tutor's conversation history
+                self.ai_tutor.conversation_history.append({
+                    "role": role_key,
+                    "content": message.strip()
+                })
+                loaded_count += 1
+            
+            self.ui.show_success(f"Resumed conversation from {filename}")
+            self.ui.show_info(f"Loaded {loaded_count} messages from conversation log")
+            
+        except Exception as e:
+            self.ui.show_error(f"Failed to resume conversation: {e}")
 
     def run(self):
         """Main application loop"""

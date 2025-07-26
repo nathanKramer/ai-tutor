@@ -29,6 +29,7 @@ class CommandCompleter(Completer):
             '/help',
             '/log',
             '/resume',
+            '/role',
             '/clear',
             '/quit',
             '/exit'
@@ -41,6 +42,12 @@ class CommandCompleter(Completer):
         self.provider_commands = [
             '/provider openai',
             '/provider claude'
+        ]
+        
+        # Role-specific completions
+        self.role_commands = [
+            '/role tutor',
+            '/role simple'
         ]
     
     def _extract_path_at_cursor(self, text, cursor_pos):
@@ -86,6 +93,11 @@ class CommandCompleter(Completer):
                     for provider in ['openai', 'claude']:
                         if provider.startswith(partial):
                             yield Completion(provider, start_position=-len(partial))
+                elif text.startswith('/role '):
+                    partial = text[6:]  # Remove '/role '
+                    for role in ['tutor', 'simple']:
+                        if role.startswith(partial):
+                            yield Completion(role, start_position=-len(partial))
                 elif text.startswith('/ask '):
                     # For /ask, provide file path completions after the command
                     # Extract the part after '/ask '
@@ -353,6 +365,8 @@ Ready to start coding together! 🚀
         help_table.add_row("/resume", "List available conversation logs to resume")
         help_table.add_row("/resume <filename>", "Resume conversation from log file")
         help_table.add_row("/resume latest", "Resume from auto-saved latest conversation")
+        help_table.add_row("/role tutor", "Switch to Socratic tutor mode")
+        help_table.add_row("/role simple", "Switch to simple tutor mode")
         help_table.add_row("/help", "Show this help message")
         help_table.add_row("/clear", "Clear conversation history")
         help_table.add_row("/quit or /exit", "End the tutoring session")

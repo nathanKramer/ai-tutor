@@ -192,6 +192,20 @@ class AITutor(TutorInterface):
         """Update the system prompt"""
         self.system_prompt = prompt
     
+    def switch_role(self, role: str) -> bool:
+        """Switch to a predefined role/system prompt"""
+        try:
+            if role == "tutor":
+                self.system_prompt = self.prompt_manager.get_default_system_prompt()
+                return True
+            elif role == "simple":
+                self.system_prompt = self.prompt_manager.get_simple_tutor_prompt()
+                return True
+            else:
+                return False
+        except Exception:
+            return False
+    
     def get_conversation_summary(self) -> str:
         """Get a summary of recent conversation"""
         if not self.conversation_history:

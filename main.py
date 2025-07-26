@@ -223,6 +223,11 @@ class AIPairProgrammingTutor:
                     filename = 'latest.jsonl'
                 self.resume_conversation(filename)
 
+            elif command.startswith('role '):
+                # Switch system prompt role
+                role = command[5:].strip().lower()
+                self.switch_role(role)
+
             elif command.startswith('ask '):
                 # Use simple tutor for direct question
                 question = command[4:].strip()
@@ -294,6 +299,25 @@ Available Commands:
             
         except Exception as e:
             self.ui.show_error(f"Failed to show config: {e}")
+
+    def switch_role(self, role: str):
+        """Switch the AI tutor's role/system prompt"""
+        try:
+            if not self.ai_tutor:
+                self.ui.show_error("AI tutor not initialized yet.")
+                return
+            
+            success = self.ai_tutor.switch_role(role)
+            if success:
+                if role == "tutor":
+                    self.ui.show_success("Switched to Socratic tutor mode")
+                elif role == "simple":
+                    self.ui.show_success("Switched to simple tutor mode")
+            else:
+                self.ui.show_error(f"Unknown role: '{role}'. Available roles: tutor, simple")
+                
+        except Exception as e:
+            self.ui.show_error(f"Failed to switch role: {e}")
 
     def show_conversation_log(self):
         """Show conversation history"""

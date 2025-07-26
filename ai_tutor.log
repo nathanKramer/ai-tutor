@@ -1,0 +1,2 @@
+2025-07-26 15:03:20,559 - ai_tutor - INFO - AI Tutor initialized (Provider: openai, Model: gpt-3.5-turbo)
+2025-07-26 15:11:38,658 - ai_tutor - INFO - AI Tutor initialized (Provider: claude, Model: claude-sonnet-4-20250514)

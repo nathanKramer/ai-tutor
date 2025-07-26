@@ -9,7 +9,7 @@ Currently supports anthropic and openai, basic tool calling (list files / read f
 ## Installation
 
 ### Prerequisites
-- Python 3.7+
+- Python 3
 - At least one API key:
   - OpenAI API key for GPT models
   - Anthropic API key for Claude models

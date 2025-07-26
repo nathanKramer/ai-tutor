@@ -26,9 +26,15 @@ class AIPairProgrammingTutor:
         self.debug = debug
         self.running = False
         
-        # Create logger
-        self.logger = create_logger("ai_tutor", debug=debug, 
-                                  log_file="ai_tutor.log" if not debug else None)
+        # Create logger with config directory path
+        log_file_path = None
+        if not debug:
+            from pathlib import Path
+            config_dir = Path.home() / ".config" / "ai-tutor"
+            config_dir.mkdir(parents=True, exist_ok=True)
+            log_file_path = str(config_dir / "ai_tutor.log")
+        
+        self.logger = create_logger("ai_tutor", debug=debug, log_file=log_file_path)
         
         # Initialize core components directly
         self.ui = TerminalInterface()

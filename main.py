@@ -208,6 +208,8 @@ class AIPairProgrammingTutor:
             elif command == 'clear':
                 if self.ai_tutor:
                     self.ai_tutor.clear_conversation()
+                    self.ui.clear_screen()
+                    self.ui.show_welcome()
                     self.ui.show_success("Conversation history cleared")
 
             elif command.startswith('provider '):
@@ -624,7 +626,7 @@ Available Commands:
 
     def run(self):
         """Main application loop"""
-        # self.ui.clear_screen()
+        self.ui.clear_screen()
         self.ui.show_welcome()
 
         self.running = True

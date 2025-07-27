@@ -30,7 +30,7 @@ At the moment I've just been using it to solve toy problems in haskell and rust 
 ### Setup
 1. **Clone the repository**:
    ```bash
-   git clone <repository-url>
+   git clone git@github.com:nathanKramer/ai-tutor.git
    cd ai-tutor
    ```
 

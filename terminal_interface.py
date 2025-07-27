@@ -248,6 +248,7 @@ class TerminalInterface:
 
 [yellow]Quick Start:[/yellow]
 • Just type your question and press [bold]Enter[/bold]
+• Press Alt+Enter for new lines
 • Use [bold cyan]/help[/bold cyan] to see available commands
 
 [dim]Ready to code together![/dim]
